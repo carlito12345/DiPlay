@@ -24,6 +24,8 @@ internal class AudioFocusCoordinator(
     private val captures = LinkedHashMap<AudioChannel, Entry>()
     private var request: AudioFocusRequest? = null
     private var requestedChannel: AudioChannel? = null
+    // carlito | Capture and playback can share a role but require different focus attributes.
+    private var requestedAttributes: AudioAttributes? = null
     private var requestGeneration = 0
     private var focusHeld = false
     private var focusVolume = 0f
@@ -80,8 +82,10 @@ internal class AudioFocusCoordinator(
     @Synchronized fun captureAllowed(): Boolean = !closed && (!enabled || focusHeld && !externalCall)
 
     private fun addCapture(channel: AudioChannel, usage: Int) {
-        captures[channel] = Entry(channel, active.values.firstOrNull { it.channel == channel }?.attributes
-            ?: AudioAttributes.Builder().setUsage(if (unifiedMediaOutput) AudioAttributes.USAGE_MEDIA else usage)
+        // carlito | Input focus remains a voice request even when its output track uses MEDIA.
+        val playbackAttributes = if (unifiedMediaOutput) null else active.values.firstOrNull { it.channel == channel }?.attributes
+        captures[channel] = Entry(channel, playbackAttributes
+            ?: AudioAttributes.Builder().setUsage(usage)
                 .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build())
     }
 
@@ -121,20 +125,21 @@ internal class AudioFocusCoordinator(
     private fun abandonRequest() {
         requestGeneration++
         request?.let { runCatching { manager?.abandonAudioFocusRequest(it) } }
-        request = null; requestedChannel = null; focusHeld = false; focusVolume = 0f
+        request = null; requestedChannel = null; requestedAttributes = null; focusHeld = false; focusVolume = 0f
     }
 
     private fun refreshRequest() {
         if (closed) return
         if (!enabled || manager == null) { applyVolumes(); return }
         if (externalCall) { applyVolumes(); return }
-        val primary = (active.values + captures.values).filter {
+        val entries = if (unifiedMediaOutput) captures.values + active.values else active.values + captures.values
+        val primary = entries.filter {
             it.channel != AudioChannel.NAVIGATION && (it.channel != AudioChannel.MEDIA || !nativeBluetoothPlaying && !mediaSuppressed && mediaPlaying != false)
         }.maxByOrNull { it.channel.priority() }
             ?: mediaAttributes?.takeIf { !nativeBluetoothPlaying && !mediaSuppressed && mediaPlaying != false }?.let { Entry(AudioChannel.MEDIA, it) }
             ?: active.values.firstOrNull { it.channel == AudioChannel.NAVIGATION }
         if (primary == null) { abandonRequest(); applyVolumes(); return }
-        if (request != null && requestedChannel == primary.channel) { applyVolumes(); return }
+        if (request != null && requestedChannel == primary.channel && requestedAttributes == primary.attributes) { applyVolumes(); return }
         abandonRequest()
         val generation = ++requestGeneration
         val gain = when (primary.channel) {
@@ -147,6 +152,7 @@ internal class AudioFocusCoordinator(
         request = AudioFocusRequest.Builder(gain).setAudioAttributes(primary.attributes)
             .setOnAudioFocusChangeListener({ change -> onFocusChanged(generation, change) }, Handler(Looper.getMainLooper())).build()
         requestedChannel = primary.channel
+        requestedAttributes = primary.attributes
         requestCurrentFocus()
     }
 

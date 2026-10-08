@@ -1,23 +1,31 @@
 package com.shilapi.xcertplay.media
 
 import android.Manifest
+import android.content.Context
 import android.media.AudioManager
 import android.media.AudioRecord
+import android.media.AudioAttributes
+import android.media.AudioFormat
+import android.media.AudioTrack
 import android.media.MediaRecorder
 import android.media.audiofx.AcousticEchoCanceler
 import android.media.audiofx.AudioEffect
 import com.shilapi.xcertplay.airplay.AudioStreamId
 import com.shilapi.xcertplay.airplay.MicrophoneConfig
+import com.shilapi.xcertplay.vehicle.GeelyFactoryCarPlay
 import java.net.InetAddress
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.ScheduledExecutorService
+import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.atomic.AtomicReference
 import org.junit.After
 import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.json.JSONObject
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.Shadows.shadowOf
@@ -46,7 +54,7 @@ class TelephonyMicrophoneTest {
         ConfigurableAudioEffect.resetStatus()
         shadowOf(context).grantPermissions(Manifest.permission.RECORD_AUDIO, Manifest.permission.MODIFY_AUDIO_SETTINGS)
         manager = context.getSystemService(AudioManager::class.java)
-        sink = AndroidMediaSink(context = context)
+        sink = testSink(context = context)
         for (type in listOf(AudioEffect.EFFECT_TYPE_AEC, AudioEffect.EFFECT_TYPE_NS)) {
             ShadowAudioEffect.addEffect(AudioEffect.Descriptor(type.toString(), type.toString(),
                 "Pre Processing", "Test effect", "DiPlay"))
@@ -98,10 +106,92 @@ class TelephonyMicrophoneTest {
         assertTrue(ShadowAudioEffect.getAudioEffects().isEmpty())
     }
 
+    // carlito | Regression: the production host enables unified MEDIA playback.
+    @Test fun unifiedMediaPlaybackStillAcquiresTheCallMicrophoneRoute() {
+        sink.close()
+        val diagnostics = CopyOnWriteArrayList<String>()
+        sink = testSink(context = context, audioFocusEnabled = true,
+            unifiedMediaOutput = true, onAudioDiagnostic = diagnostics::add)
+        manager.mode = AudioManager.MODE_RINGTONE
+        sink.onMicrophoneStarted(telephony, config("telephony"))
+        val record = awaitCapture()
+        assertEquals(AudioManager.MODE_IN_COMMUNICATION, manager.mode)
+        assertEquals(MediaRecorder.AudioSource.VOICE_COMMUNICATION, record.audioSource)
+        assertTrue(diagnostics.any { it.startsWith("Microphone: route state=ready") })
+        sink.onMicrophoneStopped(telephony)
+        assertEquals(AudioManager.MODE_RINGTONE, manager.mode)
+        assertEquals(AudioRecord.STATE_UNINITIALIZED, record.state)
+    }
+
+    // carlito | Input focus changes must not rewrite the MEDIA output track's attributes.
+    @Test fun unifiedCallCaptureHasVoiceFocusAndRestoresMediaFocusAfterCapture() {
+        val media = AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).build()
+        val track = AudioTrack.Builder().setAudioAttributes(media)
+            .setAudioFormat(AudioFormat.Builder().setSampleRate(16_000)
+                .setEncoding(AudioFormat.ENCODING_PCM_16BIT).setChannelMask(AudioFormat.CHANNEL_OUT_MONO).build())
+            .setBufferSizeInBytes(6_400).build()
+        val focus = AudioFocusCoordinator(context, true, unifiedMediaOutput = true)
+        val attributes = focus.javaClass.getDeclaredField("requestedAttributes").apply { isAccessible = true }
+        try {
+            focus.acquire(track, AudioChannel.PHONE, media)
+            assertEquals(AudioAttributes.USAGE_MEDIA, (attributes.get(focus) as AudioAttributes).usage)
+            focus.setMicrophones(phone = true, assistant = false)
+            assertEquals(AudioAttributes.USAGE_VOICE_COMMUNICATION, (attributes.get(focus) as AudioAttributes).usage)
+            assertEquals(AudioAttributes.USAGE_MEDIA, track.audioAttributes.usage)
+            focus.setMicrophones(phone = false, assistant = false)
+            assertEquals(AudioAttributes.USAGE_MEDIA, (attributes.get(focus) as AudioAttributes).usage)
+        } finally {
+            focus.close()
+            track.release()
+        }
+    }
+
+    // carlito | Protect native HFP calls and expose why CarPlay capture is waiting.
+    @Test fun unifiedCaptureReportsNativeCallOwnershipInsteadOfStealingIt() {
+        sink.close()
+        val diagnostics = CopyOnWriteArrayList<String>()
+        sink = testSink(context = context, unifiedMediaOutput = true, onAudioDiagnostic = diagnostics::add)
+        manager.mode = AudioManager.MODE_IN_CALL
+        sink.onMicrophoneStarted(telephony, config("telephony"))
+        assertNull(recorder.get())
+        assertEquals(AudioManager.MODE_IN_CALL, manager.mode)
+        assertTrue(diagnostics.any { it.startsWith("Microphone: route state=blocked_native_call") })
+    }
+
+    // carlito | Failed input must respect its cooldown without repeatedly switching global mode.
+    @Test fun unifiedFailedCaptureDoesNotReacquireCommunicationDuringRetryDelay() {
+        sink.close()
+        val diagnostics = CopyOnWriteArrayList<String>()
+        sink = testSink(context = context, unifiedMediaOutput = true, onAudioDiagnostic = diagnostics::add)
+        manager.mode = AudioManager.MODE_RINGTONE
+        sink.onMicrophoneStarted(telephony, config("telephony").copy(sampleRate = 1))
+        assertEquals(AudioManager.MODE_RINGTONE, manager.mode)
+        val acquired = diagnostics.count { it == "Audio: communication mode acquired" }
+        assertEquals(diagnostics.joinToString("\n"), 1, acquired)
+        val refresh = sink.javaClass.getDeclaredMethod("refreshCommunication").apply { isAccessible = true }
+        repeat(2) { refresh.invoke(sink) }
+        assertEquals(acquired, diagnostics.count { it == "Audio: communication mode acquired" })
+        assertEquals(AudioManager.MODE_RINGTONE, manager.mode)
+        assertNull(recorder.get())
+    }
+
+    // carlito | A unified output still uses the factory-provided microphone source.
+    @Test fun unifiedCaptureKeepsTheFactoryMicrophoneSource() {
+        sink.close()
+        sink = testSink(context = context, unifiedMediaOutput = true)
+        val factoryConfig = JSONObject().put("AudioAttrs", JSONObject().put("AudioSource",
+            JSONObject().put("AUDIO_SOURCE_CP_PHONE_WB", MediaRecorder.AudioSource.CAMCORDER)))
+        val factory = GeelyFactoryCarPlay::class.java.getDeclaredConstructor(JSONObject::class.java)
+            .apply { isAccessible = true }.newInstance(factoryConfig)
+        sink.javaClass.getDeclaredField("factoryAudio").apply { isAccessible = true }.set(sink, factory)
+        sink.onMicrophoneStarted(telephony, config("telephony"))
+        assertEquals(MediaRecorder.AudioSource.CAMCORDER, awaitCapture().audioSource)
+    }
+
     @Test fun microphoneMetadataAndFinalCountersReachTheAudioDiagnosticCallback() {
         sink.close()
         val diagnostics = CopyOnWriteArrayList<String>()
-        sink = AndroidMediaSink(context = context, onAudioDiagnostic = diagnostics::add)
+        sink = testSink(context = context, onAudioDiagnostic = diagnostics::add)
         sink.onMicrophoneStarted(speechRecognition, config("speechrecognition"))
         awaitCapture()
         sink.onMicrophoneStopped(speechRecognition)
@@ -114,7 +204,7 @@ class TelephonyMicrophoneTest {
 
     @Test fun diagnosticCallbackFailureDoesNotStopSpeechRecognitionCapture() {
         sink.close()
-        sink = AndroidMediaSink(context = context, onAudioDiagnostic = { throw IllegalStateException("diagnostic callback failed") })
+        sink = testSink(context = context, onAudioDiagnostic = { throw IllegalStateException("diagnostic callback failed") })
         sink.onMicrophoneStarted(speechRecognition, config("speechrecognition"))
         val record = awaitCapture()
         assertEquals(AudioRecord.RECORDSTATE_RECORDING, record.recordingState)
@@ -126,7 +216,7 @@ class TelephonyMicrophoneTest {
 
     @Test fun diagnosticCallbackFailureDoesNotStopCallCaptureOrChangeModeRestoration() {
         sink.close()
-        sink = AndroidMediaSink(context = context, onAudioDiagnostic = { throw IllegalStateException("diagnostic callback failed") })
+        sink = testSink(context = context, onAudioDiagnostic = { throw IllegalStateException("diagnostic callback failed") })
         manager.mode = AudioManager.MODE_RINGTONE
         sink.onMicrophoneStarted(telephony, config("telephony"))
         val record = awaitCapture()
@@ -212,8 +302,23 @@ class TelephonyMicrophoneTest {
         assertTrue(ShadowLog.getLogsForTag("xcertplay-usb").any { it.msg.contains("microphone start failed") })
     }
 
+    // carlito | Mock recorder/mode state is global: drive refresh explicitly instead of racing its timer.
+    private fun testSink(context: Context, audioFocusEnabled: Boolean = false,
+                         unifiedMediaOutput: Boolean = false,
+                         onAudioDiagnostic: (String) -> Unit = {}): AndroidMediaSink =
+        AndroidMediaSink(context = context, audioFocusEnabled = audioFocusEnabled,
+            unifiedMediaOutput = unifiedMediaOutput, onAudioDiagnostic = onAudioDiagnostic).also { created ->
+            (created.javaClass.getDeclaredField("routePoll").apply { isAccessible = true }.get(created)
+                as ScheduledFuture<*>).cancel(false)
+            val worker = created.javaClass.getDeclaredField("audioRouteWorker")
+                .apply { isAccessible = true }.get(created) as ScheduledExecutorService
+            worker.submit {}.get(5, TimeUnit.SECONDS)
+        }
+
     private fun awaitCapture(): AudioRecord {
-        assertTrue("Microphone capture did not start", readStarted.await(5, TimeUnit.SECONDS))
+        // carlito | Include recorder failures so an environment issue cannot masquerade as a route failure.
+        val started = readStarted.await(5, TimeUnit.SECONDS)
+        assertTrue("Microphone capture did not start\n${microphoneLog()}", started)
         return requireNotNull(recorder.get())
     }
 
