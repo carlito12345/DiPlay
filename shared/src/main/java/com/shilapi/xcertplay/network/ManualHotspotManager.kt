@@ -14,7 +14,6 @@ import com.shilapi.xcertplay.transport.Iap2WirelessSecurity
 import java.net.Inet6Address
 import java.net.InetAddress
 import java.net.NetworkInterface
-import java.util.Collections
 
 /**
  * Attaches to a hotspot that is already running on this device.
@@ -119,13 +118,13 @@ class ManualHotspotManager(
             else -> null
         }
         val security = apConfiguration?.security ?: expectedSecurity
-        // Keep the existing IPv4-first endpoint selection and also publish the selected AP's
-        // scoped IPv6 address, using the same dual-stack policy as existing Wi-Fi connections.
-        val hostAddresses = network?.let {
-            existingWifiHostAddresses(Collections.list(it.inetAddresses), selected.index)
-        }?.takeIf { it.isNotEmpty() } ?: listOfNotNull(localInterface.hostAddress)
+        // carlito | Match the working Geely APK: discovery, invitations and iAP2 use one AP
+        // address. Selection already prefers IPv4; do not add another advertised identity
+        // from an incidental IPv6 address. Same-LAN and managed hotspots keep their policy.
+        val hostAddresses = listOfNotNull(localInterface.hostAddress)
         onDiagnostic("Manual hotspot configReadable=${apConfiguration != null} " +
             "security=$security channelKnown=${channel > 0} " +
+            "credentialsSource=saved addressPolicy=primary " +
             "hardwareAddressKnown=${localInterface.hardwareAddress != null} iface=${localInterface.name} " +
             "family=${if (localInterface.hostAddress is Inet6Address) "IPv6" else "IPv4"} " +
             "mdnsFamilies=${hostAddresses.joinToString("+") { address -> if (address is Inet6Address) "IPv6" else "IPv4" }}")
