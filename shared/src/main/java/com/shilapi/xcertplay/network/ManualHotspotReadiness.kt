@@ -52,6 +52,8 @@ internal fun selectHotspotInterface(snapshot: HotspotNetworkSnapshot, log: (Stri
         val reason = when {
             !iface.up || iface.index <= 0 -> "interface_down"
             address == null -> "address_unavailable"
+            // carlito | A reported AP client can overlap the STA subnet; observed ownership wins.
+            upstream && !owned -> "wifi_upstream"
             vendorAddress != null -> "ecarx_client_route"
             snapshot.apEnabled == false -> "android_ap_off"
             owned -> "platform_ap"
@@ -64,6 +66,9 @@ internal fun selectHotspotInterface(snapshot: HotspotNetworkSnapshot, log: (Stri
         }
         log("hotspot candidate iface=${iface.name} index=${iface.index} " +
             "family=${if (address is Inet6Address) "IPv6" else if (address != null) "IPv4" else "none"} " +
+            // carlito | Selection filters must not conceal factory/non-private IPv4 in redacted reports.
+            "availableFamilies=${iface.addresses.map { if (it is Inet4Address) "IPv4" else "IPv6" }.distinct().sorted().joinToString("+").ifEmpty { "none" }} " +
+            "ipv4Classes=${iface.addresses.filterIsInstance<Inet4Address>().map(EcarxClientRoute::addressClass).distinct().sorted().joinToString("+").ifEmpty { "none" }} " +
             "scope=${(address as? Inet6Address)?.scopeId ?: 0} evidence=$reason " +
             "ap=${snapshot.apInterfaces?.let { if (owned) "yes" else "no" } ?: "unobservable"} " +
             "defaultConflict=${owned && (upstream || snapshot.defaultInterface == iface.name)}")

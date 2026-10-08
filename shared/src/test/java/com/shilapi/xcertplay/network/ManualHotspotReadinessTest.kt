@@ -209,4 +209,39 @@ class ManualHotspotReadinessTest {
         assertTrue(await { if (now < 250L) factory else platform }.factoryRoute.not())
         assertEquals(750L, now)
     }
+
+    // carlito | An unselected benchmark IPv4 must remain visible without becoming AP evidence.
+    @Test fun benchmarkIpv4RequiresFactoryEvidenceAndIsVisibleInFilteredCandidateDiagnostics() {
+        val benchmark = InetAddress.getByName("198.18.0.2")
+        val logs = mutableListOf<String>()
+        val value = snapshot(iface("eth0.11", 11, addresses = listOf(benchmark,
+            Inet6Address.getByAddress(null, ipv6.address, 11))), ap = emptySet()).copy(apEnabled = false)
+        assertNull(selectHotspotInterface(value, logs::add))
+        assertTrue(logs.any { "availableFamilies=IPv4+IPv6" in it && "ipv4Classes=benchmark_198_18_15" in it })
+        val selected = select(value.copy(vendorHostAddresses = mapOf("eth0.11" to benchmark)))!!
+        assertEquals(benchmark, selected.address)
+        assertTrue(selected.factoryRoute)
+    }
+
+    // carlito | SDK peer/subnet overlap cannot relabel the observed Wi-Fi station as an AP.
+    @Test fun factoryAddressOnObservedWifiUpstreamIsRejectedWithoutApOwnership() {
+        val value = snapshot(iface("wlan0"), ap = emptySet(), wifi = setOf("wlan0"))
+            .copy(vendorHostAddresses = mapOf("wlan0" to ipv4))
+        val logs = mutableListOf<String>()
+        assertNull(selectHotspotInterface(value, logs::add))
+        assertTrue(logs.any { "evidence=wifi_upstream" in it })
+    }
+
+    @Test fun explicitPlatformApOwnershipAllowsFactoryAddressOnDualUseWifiInterface() {
+        val value = snapshot(iface("wlan0"), ap = setOf("wlan0"), wifi = setOf("wlan0"))
+            .copy(vendorHostAddresses = mapOf("wlan0" to ipv4))
+        assertEquals("wlan0", select(value)!!.name)
+    }
+
+    @Test fun verifiedFactoryEthernetDefaultIsNotTreatedAsAWifiUpstream() {
+        val value = snapshot(iface("eth0.11", 11), ap = emptySet(), default = "eth0.11", wifi = emptySet())
+            .copy(apEnabled = false, vendorHostAddresses = mapOf("eth0.11" to ipv4))
+        assertEquals("eth0.11", select(value)!!.name)
+        assertTrue(select(value)!!.factoryRoute)
+    }
 }

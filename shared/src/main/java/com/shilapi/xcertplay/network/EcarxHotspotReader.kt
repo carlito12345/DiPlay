@@ -3,6 +3,7 @@ package com.shilapi.xcertplay.network
 import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
+import android.os.Build
 import android.os.SystemClock
 import dalvik.system.PathClassLoader
 import java.io.Closeable
@@ -13,6 +14,7 @@ import java.net.Inet4Address
 import java.net.Inet6Address
 import java.net.InetAddress
 import java.net.NetworkInterface
+import java.net.InetSocketAddress
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 
@@ -160,23 +162,49 @@ internal class EcarxHotspotReader(
             // connect resolves a local route without sending traffic or binding the process.
             socket.connect(peer, 9)
             val host = socket.localAddress
-            log("LOCAL_NETWORK route peer=${peer.hostAddress} local=${host.hostAddress} result=socket_route")
-            val iface = NetworkInterface.getByInetAddress(host) ?: return@use null
-            if (!iface.isUp || iface.isLoopback) return@use null
+            // carlito | The report redacts IP literals; preserve family/class and rejection reason.
+            log("LOCAL_NETWORK route peer=${peer.hostAddress} local=${host.hostAddress} " +
+                "family=${if (host is Inet4Address) "IPv4" else "IPv6"} sourceClass=${EcarxClientRoute.addressClass(host)} result=socket_route")
+            if (host.isAnyLocalAddress || host.isLoopbackAddress || host.isMulticastAddress) {
+                log("LOCAL_NETWORK route result=source_invalid sourceClass=${EcarxClientRoute.addressClass(host)}")
+                return@use null
+            }
+            val iface = runCatching { NetworkInterface.getByInetAddress(host) }.onFailure {
+                log("LOCAL_NETWORK route result=interface_lookup_failed error=${it.javaClass.simpleName}")
+            }.getOrNull()
+            if (iface == null) { log("LOCAL_NETWORK route result=source_interface_unmapped"); return@use null }
+            if (!iface.isUp || iface.isLoopback || iface.index <= 0 ||
+                EcarxClientRoute.unsafeInterface(iface.name) ||
+                iface.inetAddresses.toList().none { it.address.contentEquals(host.address) }) {
+                log("LOCAL_NETWORK route iface=${iface.name} result=source_interface_ineligible")
+                return@use null
+            }
             val direct = if (peer is Inet6Address) peer.scopeId == iface.index else
                 iface.interfaceAddresses.any { entry ->
                     val address = entry.address
                     address is Inet4Address && address.address.contentEquals(host.address) &&
                         sameSubnet(address.address, peer.address, entry.networkPrefixLength.toInt())
                 }
-            if (!direct) null else iface.name to host
-        } }.getOrNull()
+            if (direct) {
+                val sourceEligible = host is Inet4Address && host.isSiteLocalAddress ||
+                    host is Inet6Address && host.isLinkLocalAddress && peer is Inet6Address && peer.scopeId == iface.index
+                if (!sourceEligible) {
+                    log("LOCAL_NETWORK route iface=${iface.name} sourceClass=${EcarxClientRoute.addressClass(host)} result=direct_source_ineligible")
+                    null
+                } else if (sourceBindable(host)) iface.name to host else null
+            } else if (peer is Inet4Address && host is Inet4Address) {
+                log("LOCAL_NETWORK route iface=${iface.name} sourceClass=${EcarxClientRoute.addressClass(host)} result=cross_subnet")
+                verifiedFactoryGateway(peer, host, iface)
+            } else null
+        } }.onFailure {
+            log("LOCAL_NETWORK route result=socket_route_failed error=${it.javaClass.simpleName}")
+        }.getOrNull()
         if (routed != null) return@runCatching routed
         // carlito: Vendor APs can lack a usable default socket route. Accept only a unique
         // local subnet match; never infer an AP from an unrelated default-network address.
         if (peer !is Inet4Address) return@runCatching null
         val matches = NetworkInterface.getNetworkInterfaces()?.toList().orEmpty()
-            .filter { it.isUp && !it.isLoopback }
+            .filter { it.isUp && !it.isLoopback && it.index > 0 && !EcarxClientRoute.unsafeInterface(it.name) }
             .flatMap { iface -> iface.interfaceAddresses.mapNotNull { entry ->
                 val host = entry.address
                 if (host is Inet4Address && host.isSiteLocalAddress &&
@@ -185,40 +213,88 @@ internal class EcarxHotspotReader(
             } }.distinct()
         log("LOCAL_NETWORK route peer=${peer.hostAddress} subnetMatches=${matches.size} " +
             "result=${if (matches.size == 1) "unique_subnet" else if (matches.isEmpty()) "no_local_subnet" else "ambiguous_subnet"}")
-        matches.singleOrNull()
+        matches.singleOrNull()?.takeIf { sourceBindable(it.second) }
+    }.onFailure {
+        log("LOCAL_NETWORK route result=route_validation_failed error=${it.javaClass.simpleName}")
     }.getOrNull()
 
-    private fun neighborPeers(clientMacs: Set<String>): List<InetAddress> {
+    // carlito | Cross-subnet support is conditional on a current SDK client and kernel evidence.
+    // The 198.18/15 source is a KX11 compatibility hypothesis, never an AP fallback by itself.
+    private fun verifiedFactoryGateway(peer: Inet4Address, host: Inet4Address,
+                                       iface: NetworkInterface): Pair<String, InetAddress>? {
+        if (!EcarxClientRoute.kx11Source(Build.VERSION.SDK_INT, Build.MODEL, Build.DEVICE, iface.name, host)) {
+            log("LOCAL_NETWORK route iface=${iface.name} sourceClass=${EcarxClientRoute.addressClass(host)} result=cross_subnet_policy_rejected")
+            return null
+        }
+        val routeGet = ipLines(listOf("-4", "route", "get", peer.hostAddress!!), "route_get") ?: return null
+        val resolved = routeGet.mapNotNull(EcarxClientRoute::parseIpv4Route).singleOrNull()
+        val routeTable = ipLines(listOf("-4", "route", "show", "table", "all"), "route_table") ?: return null
+        if (resolved != null && EcarxClientRoute.matchingMultipathRoute(routeTable, peer, resolved.table)) {
+            log("LOCAL_NETWORK route result=matching_multipath_route_unsupported")
+            return null
+        }
+        val sourcePrefix = iface.interfaceAddresses.firstOrNull { it.address == host }?.networkPrefixLength?.toInt() ?: 0
+        val result = EcarxClientRoute.routedDecision(peer, host, iface.name, sourcePrefix, resolved,
+            routeTable.mapNotNull(EcarxClientRoute::parseIpv4Route))
+        log("LOCAL_NETWORK route iface=${iface.name} sourceClass=${EcarxClientRoute.addressClass(host)} " +
+            "table=${resolved?.table ?: "unknown"} result=$result")
+        return if (result == "verified_factory_gateway" && sourceBindable(host)) iface.name to host else null
+    }
+
+    private fun sourceBindable(host: InetAddress): Boolean = runCatching {
+        DatagramSocket(null).use { it.bind(InetSocketAddress(host, 0)) }
+        true // Local bind proves address ownership, not successful remote traffic.
+    }.getOrElse {
+        log("LOCAL_NETWORK route sourceClass=${EcarxClientRoute.addressClass(host)} result=source_bind_failed error=${it.javaClass.simpleName}")
+        false
+    }
+
+    // carlito | A child uses DiPlay's UID, numeric arguments and a fixed executable, not a shell.
+    // Read only after exit: a full pipe causes bounded rejection rather than an unbounded read.
+    private fun ipLines(arguments: List<String>, topic: String): List<String>? {
+        if (closed || Thread.currentThread().isInterrupted) return null
         var process: Process? = null
         return try {
-            process = ProcessBuilder("/system/bin/ip", "-6", "neigh", "show")
-                .redirectErrorStream(true).start()
-            if (!process.waitFor(400, TimeUnit.MILLISECONDS) || process.exitValue() != 0) {
-                log("ecarxHotspot neighborTable=unavailable")
-                emptyList()
+            process = ProcessBuilder(listOf("/system/bin/ip") + arguments).redirectErrorStream(true).start()
+            if (!process.waitFor(400, TimeUnit.MILLISECONDS)) {
+                log("ecarxHotspot $topic=timeout")
+                null
             } else {
-                val entries = process.inputStream.bufferedReader().use {
-                    it.lineSequence().take(512).mapNotNull { line -> neighborEntry(line, clientMacs) }.toList()
+                val lines = process.inputStream.bufferedReader().use { it.lineSequence().take(513).toList() }
+                if (closed || Thread.currentThread().isInterrupted) null
+                else if (lines.size > 512) {
+                    log("ecarxHotspot $topic=output_too_large")
+                    null
                 }
-                entries.mapNotNull { (raw, name) -> runCatching {
-                    val iface = NetworkInterface.getByName(name)?.takeIf { it.isUp && !it.isLoopback && it.index > 0 }
-                        ?: return@runCatching null
-                    val address = numericAddress(raw) as? Inet6Address ?: return@runCatching null
-                    Inet6Address.getByAddress(null, address.address, iface.index)
-                }.getOrNull() }.also { log("ecarxHotspot neighborTable=read matchedClients=${it.size}") }
+                else if (process.exitValue() != 0) {
+                    val denied = lines.any { it.contains("permission", true) || it.contains("not permitted", true) }
+                    log("ecarxHotspot $topic=${if (denied) "permission_denied" else "query_failed"} exit=${process.exitValue()}")
+                    null
+                } else lines
             }
         } catch (error: InterruptedException) {
             Thread.currentThread().interrupt()
-            emptyList()
+            null
         } catch (error: Exception) {
-            failure("clients", "neighborTable", error)
-            emptyList()
+            log("ecarxHotspot $topic=unavailable error=${error.javaClass.simpleName}")
+            null
         } finally {
             process?.destroyForcibly()
             runCatching { process?.inputStream?.close() }
             runCatching { process?.errorStream?.close() }
             runCatching { process?.outputStream?.close() }
         }
+    }
+
+    private fun neighborPeers(clientMacs: Set<String>): List<InetAddress> {
+        // carlito | Share the same bounded reader for neighbor and route evidence.
+        val lines = ipLines(listOf("-6", "neigh", "show"), "neighborTable") ?: return emptyList()
+        return lines.mapNotNull { line -> neighborEntry(line, clientMacs) }.mapNotNull { (raw, name) -> runCatching {
+            val iface = NetworkInterface.getByName(name)?.takeIf { it.isUp && !it.isLoopback && it.index > 0 }
+                ?: return@runCatching null
+            val address = numericAddress(raw) as? Inet6Address ?: return@runCatching null
+            Inet6Address.getByAddress(null, address.address, iface.index)
+        }.getOrNull() }.also { log("ecarxHotspot neighborTable=read matchedClients=${it.size}") }
     }
 
     @Synchronized
