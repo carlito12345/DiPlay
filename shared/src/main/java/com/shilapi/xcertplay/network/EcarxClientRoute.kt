@@ -15,6 +15,10 @@ internal data class EcarxIpv4Route(
 )
 
 internal object EcarxClientRoute {
+    // carlito | Reuse the address policy for current SDK clients and their owned local source.
+    fun usableIpv4(address: InetAddress): Boolean =
+        address is Inet4Address && HotspotAddressPolicy.select(listOf(address)) != null
+
     fun addressClass(address: InetAddress?): String = when {
         address == null -> "unknown"
         address.isAnyLocalAddress -> "unspecified"
@@ -43,38 +47,52 @@ internal object EcarxClientRoute {
         else -> value
     }
 
-    private fun destination(text: String): Pair<Inet4Address, Int>? {
+    private fun destination(text: String, allowDefault: Boolean = false): Pair<Inet4Address, Int>? {
+        if (text == "default") return if (allowDefault)
+            (EcarxHotspotReader.numericAddress("0.0.0.0") as Inet4Address) to 0 else null
         val parts = text.split('/')
         if (parts.size !in 1..2) return null
         val address = EcarxHotspotReader.numericAddress(parts[0]) as? Inet4Address ?: return null
         val prefix = if (parts.size == 1) 32 else parts[1].toIntOrNull() ?: return null
-        return if (prefix in 1..32) address to prefix else null
+        return if (prefix in 1..32 || allowDefault && prefix == 0 && address.isAnyLocalAddress)
+            address to prefix else null
     }
 
     // carlito | Route-show emits a header followed by indented nexthops. An unrelated policy
     // table or destination must not disable this client's otherwise unambiguous factory route.
-    fun matchingMultipathRoute(lines: List<String>, peer: Inet4Address, resolvedTable: String): Boolean {
-        var matchingHeader = false
+    fun matchingMultipathRoute(lines: List<String>, peer: Inet4Address, resolvedTable: String,
+                               allowDefault: Boolean = false): Boolean {
+        val matches = mutableListOf<Pair<Int, Boolean>>()
+        var matchingPrefix: Int? = null
+        var multipath = false
+        fun finishHeader() {
+            matchingPrefix?.let { matches += it to multipath }
+        }
         for (line in lines) {
             val fields = line.trim().split(Regex("\\s+"))
             if (fields.firstOrNull() == "nexthop") {
-                if (matchingHeader) return true
+                if (matchingPrefix != null) multipath = true
                 continue
             }
-            val target = fields.firstOrNull()?.let(::destination)
+            finishHeader()
+            val target = fields.firstOrNull()?.let { destination(it, allowDefault) }
             val tableIndex = fields.indexOf("table")
             val rowTable = if (tableIndex < 0) "main" else fields.getOrNull(tableIndex + 1)
-            matchingHeader = target != null && rowTable != null && table(rowTable) == table(resolvedTable) &&
-                EcarxHotspotReader.sameSubnet(target.first.address, peer.address, target.second)
-            if (matchingHeader && "nexthop" in fields) return true
+            matchingPrefix = target?.takeIf { (network, prefix) ->
+                rowTable != null && table(rowTable) == table(resolvedTable) &&
+                    (prefix == 0 || EcarxHotspotReader.sameSubnet(network.address, peer.address, prefix))
+            }?.second
+            multipath = "nexthop" in fields
         }
-        return false
+        finishHeader()
+        val longest = matches.maxOfOrNull { it.first } ?: return false
+        return matches.any { it.first == longest && it.second }
     }
 
-    fun parseIpv4Route(line: String): EcarxIpv4Route? {
+    fun parseIpv4Route(line: String, allowDefault: Boolean = false): EcarxIpv4Route? {
         val fields = line.trim().split(Regex("\\s+"))
-        if (fields.isEmpty() || "nexthop" in fields || fields.first() == "default") return null
-        val (destination, prefix) = destination(fields.first()) ?: return null
+        if (fields.isEmpty() || "nexthop" in fields) return null
+        val (destination, prefix) = destination(fields.first(), allowDefault) ?: return null
         fun field(key: String): String? {
             val positions = fields.indices.filter { fields[it] == key }
             return if (positions.size == 1) fields.getOrNull(positions.single() + 1) else null
@@ -90,17 +108,20 @@ internal object EcarxClientRoute {
         return EcarxIpv4Route(destination, prefix, name, source, gateway, table(routeTable))
     }
 
-    // A specific destination route is required: a cellular/default route is not AP evidence.
+    // carlito | A default route alone is not AP evidence. The caller may permit it only for
+    // a current SDK client on the KX11 factory source, with matching route-get/table/gateway.
     fun routedDecision(peer: Inet4Address, source: Inet4Address, name: String, sourcePrefix: Int,
-                       route: EcarxIpv4Route?, routes: List<EcarxIpv4Route>): String {
+                       route: EcarxIpv4Route?, routes: List<EcarxIpv4Route>,
+                       allowDefault: Boolean = false): String {
         if (route == null) return "route_get_unreadable"
         if (route.prefix != 32 || route.destination != peer) return "route_destination_mismatch"
         if (route.interfaceName != name || route.source != source) return "route_source_or_interface_mismatch"
         val gateway = route.gateway ?: return "cross_subnet_gateway_missing"
-        if (gateway.isAnyLocalAddress || gateway.isLoopbackAddress || gateway.isMulticastAddress ||
+        if (gateway == source || gateway.isAnyLocalAddress || gateway.isLoopbackAddress || gateway.isMulticastAddress ||
             !EcarxHotspotReader.sameSubnet(source.address, gateway.address, sourcePrefix)) return "gateway_not_on_source_link"
         val matches = routes.filter {
-            it.table == route.table && EcarxHotspotReader.sameSubnet(it.destination.address, peer.address, it.prefix)
+            it.table == route.table && (allowDefault && it.prefix == 0 && it.destination.isAnyLocalAddress ||
+                EcarxHotspotReader.sameSubnet(it.destination.address, peer.address, it.prefix))
         }
         val longest = matches.maxOfOrNull { it.prefix } ?: return "no_specific_client_route"
         val selected = matches.filter { it.prefix == longest }.distinct()
@@ -108,7 +129,7 @@ internal object EcarxClientRoute {
         val specific = selected.single()
         if (specific.interfaceName != name || specific.gateway != gateway ||
             specific.source != null && specific.source != source) return "specific_route_mismatch"
-        return "verified_factory_gateway"
+        return if (specific.prefix == 0) "verified_factory_default_gateway" else "verified_factory_gateway"
     }
 
     private fun benchmarkSource(address: InetAddress): Boolean = address is Inet4Address &&

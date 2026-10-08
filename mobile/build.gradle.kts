@@ -19,7 +19,7 @@ android {
         targetSdk = 37
         // carlito | Equal to main 0.2.15 so the signed test and main packages can replace each other.
         versionCode = 40
-        versionName = "0.2.14"
+        versionName = "0.2.15"
 
     }
 

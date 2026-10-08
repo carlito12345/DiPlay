@@ -153,7 +153,7 @@ internal class EcarxHotspotReader(
     }
 
     private fun routeToClient(peer: InetAddress): Pair<String, InetAddress>? = runCatching {
-        if (!(peer is Inet4Address && peer.isSiteLocalAddress ||
+        if (!(EcarxClientRoute.usableIpv4(peer) ||
                 peer is Inet6Address && peer.isLinkLocalAddress && peer.scopeId > 0)) {
             log("LOCAL_NETWORK route peer=${peer.hostAddress} result=unsupported_address_or_missing_scope")
             return null
@@ -186,7 +186,7 @@ internal class EcarxHotspotReader(
                         sameSubnet(address.address, peer.address, entry.networkPrefixLength.toInt())
                 }
             if (direct) {
-                val sourceEligible = host is Inet4Address && host.isSiteLocalAddress ||
+                val sourceEligible = EcarxClientRoute.usableIpv4(host) ||
                     host is Inet6Address && host.isLinkLocalAddress && peer is Inet6Address && peer.scopeId == iface.index
                 if (!sourceEligible) {
                     log("LOCAL_NETWORK route iface=${iface.name} sourceClass=${EcarxClientRoute.addressClass(host)} result=direct_source_ineligible")
@@ -207,7 +207,7 @@ internal class EcarxHotspotReader(
             .filter { it.isUp && !it.isLoopback && it.index > 0 && !EcarxClientRoute.unsafeInterface(it.name) }
             .flatMap { iface -> iface.interfaceAddresses.mapNotNull { entry ->
                 val host = entry.address
-                if (host is Inet4Address && host.isSiteLocalAddress &&
+                if (host is Inet4Address && EcarxClientRoute.usableIpv4(host) &&
                     sameSubnet(host.address, peer.address, entry.networkPrefixLength.toInt()))
                     iface.name to host else null
             } }.distinct()
@@ -218,27 +218,32 @@ internal class EcarxHotspotReader(
         log("LOCAL_NETWORK route result=route_validation_failed error=${it.javaClass.simpleName}")
     }.getOrNull()
 
-    // carlito | Cross-subnet support is conditional on a current SDK client and kernel evidence.
-    // The 198.18/15 source is a KX11 compatibility hypothesis, never an AP fallback by itself.
+    // carlito | Current SDK clients require matching kernel routes on physical AP/bridge
+    // interfaces. Only the known KX11 source may use a verified default-only gateway path.
     private fun verifiedFactoryGateway(peer: Inet4Address, host: Inet4Address,
                                        iface: NetworkInterface): Pair<String, InetAddress>? {
-        if (!EcarxClientRoute.kx11Source(Build.VERSION.SDK_INT, Build.MODEL, Build.DEVICE, iface.name, host)) {
+        if (!EcarxClientRoute.usableIpv4(host) ||
+            !(Regex("eth[0-9]+(\\.[0-9]+)?", RegexOption.IGNORE_CASE).matches(iface.name) ||
+                iface.name.startsWith("br") || wirelessInterfaceName(iface.name))) {
             log("LOCAL_NETWORK route iface=${iface.name} sourceClass=${EcarxClientRoute.addressClass(host)} result=cross_subnet_policy_rejected")
             return null
         }
+        val allowDefault = EcarxClientRoute.kx11Source(
+            Build.VERSION.SDK_INT, Build.MODEL, Build.DEVICE, iface.name, host)
         val routeGet = ipLines(listOf("-4", "route", "get", peer.hostAddress!!), "route_get") ?: return null
-        val resolved = routeGet.mapNotNull(EcarxClientRoute::parseIpv4Route).singleOrNull()
+        val resolved = routeGet.mapNotNull { EcarxClientRoute.parseIpv4Route(it) }.singleOrNull()
         val routeTable = ipLines(listOf("-4", "route", "show", "table", "all"), "route_table") ?: return null
-        if (resolved != null && EcarxClientRoute.matchingMultipathRoute(routeTable, peer, resolved.table)) {
+        if (resolved != null && EcarxClientRoute.matchingMultipathRoute(routeTable, peer, resolved.table, allowDefault)) {
             log("LOCAL_NETWORK route result=matching_multipath_route_unsupported")
             return null
         }
         val sourcePrefix = iface.interfaceAddresses.firstOrNull { it.address == host }?.networkPrefixLength?.toInt() ?: 0
         val result = EcarxClientRoute.routedDecision(peer, host, iface.name, sourcePrefix, resolved,
-            routeTable.mapNotNull(EcarxClientRoute::parseIpv4Route))
+            routeTable.mapNotNull { EcarxClientRoute.parseIpv4Route(it, allowDefault) }, allowDefault)
         log("LOCAL_NETWORK route iface=${iface.name} sourceClass=${EcarxClientRoute.addressClass(host)} " +
-            "table=${resolved?.table ?: "unknown"} result=$result")
-        return if (result == "verified_factory_gateway" && sourceBindable(host)) iface.name to host else null
+            "table=${resolved?.table ?: "unknown"} defaultRouteEligible=$allowDefault result=$result")
+        return if (result in setOf("verified_factory_gateway", "verified_factory_default_gateway") &&
+            sourceBindable(host)) iface.name to host else null
     }
 
     private fun sourceBindable(host: InetAddress): Boolean = runCatching {

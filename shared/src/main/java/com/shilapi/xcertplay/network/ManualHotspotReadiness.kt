@@ -46,9 +46,9 @@ internal fun selectHotspotInterface(snapshot: HotspotNetworkSnapshot, log: (Stri
                     !host.isMulticastAddress && !host.isLinkLocalAddress ||
                     host is Inet6Address && host.isLinkLocalAddress && host.scopeId == iface.index)
         }
-        val address = vendorAddress ?: wirelessHostAddress(iface.addresses.filter {
-            it is Inet6Address && it.isLinkLocalAddress || it is Inet4Address && it.isSiteLocalAddress
-        }, iface.index)
+        // carlito | Match the working APK's IPv4-first policy before checking AP ownership.
+        // Factory subnets such as 198.18/15 must not disappear from the candidate list.
+        val address = vendorAddress ?: wirelessHostAddress(iface.addresses, iface.index)
         val reason = when {
             !iface.up || iface.index <= 0 -> "interface_down"
             address == null -> "address_unavailable"
