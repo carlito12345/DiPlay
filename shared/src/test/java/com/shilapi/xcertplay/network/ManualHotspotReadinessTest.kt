@@ -147,4 +147,66 @@ class ManualHotspotReadinessTest {
         assertNull(select(snapshot(iface(addresses = emptyList()))))
         assertNull(select(snapshot(iface(addresses = listOf(InetAddress.getByName("127.0.0.1"))))))
     }
+
+    // carlito | Reproduce KX11's empty Android AP list without authorizing arbitrary Ethernet.
+    @Test fun androidApOffRejectsResidualWlanWithoutOwnershipOrFactoryRoute() {
+        val value = snapshot(iface("wlan0"), ap = null, wifi = emptySet())
+            .copy(apEnabled = false, vendorHostAddresses = emptyMap())
+        assertNull(select(value))
+    }
+
+    @Test fun factoryClientRouteOverridesEmptyPlatformListAndOtherAndroidApOff() {
+        val value = snapshot(iface("eth0", 4), ap = emptySet(), default = "eth0")
+            .copy(apEnabled = false, vendorHostAddresses = mapOf("eth0" to ipv4))
+        assertEquals("eth0", await { value }.name)
+        assertEquals(500L, now)
+    }
+
+    @Test fun ipv6OnlyFactoryRouteRequiresTheCorrectScope() {
+        val scoped = Inet6Address.getByAddress(null, ipv6.address, 11)
+        val value = snapshot(iface("eth0.11", 11, addresses = listOf(scoped)), ap = emptySet())
+            .copy(apEnabled = false, vendorHostAddresses = mapOf("eth0.11" to scoped))
+        assertEquals(11, (select(value)!!.address as Inet6Address).scopeId)
+        for (invalid in listOf(ipv6, Inet6Address.getByAddress(null, ipv6.address, 4))) {
+            assertNull(select(value.copy(vendorHostAddresses = mapOf("eth0.11" to invalid))))
+        }
+    }
+
+    @Test fun staleFactoryAddressAndDownInterfacesNeverPassReadiness() {
+        val value = snapshot(iface("eth0"), ap = emptySet())
+            .copy(vendorHostAddresses = mapOf("eth0" to ipv4))
+        assertNull(select(value.copy(interfaces = listOf(iface("eth0", up = false)))))
+        assertNull(select(value.copy(interfaces = listOf(iface("eth0", addresses = emptyList())))))
+        assertNull(select(value.copy(vendorHostAddresses = mapOf("eth0" to InetAddress.getByName("192.168.15.1")))))
+        assertNull(select(value.copy(consistent = false)))
+    }
+
+    @Test fun factoryRouteWinsOverTheSeparateOrdinaryAp() {
+        val value = snapshot(iface("wlan0"), iface("eth0.11", 11), ap = setOf("wlan0"))
+            .copy(vendorHostAddresses = mapOf("eth0.11" to ipv4))
+        assertEquals("eth0.11", select(value)!!.name)
+    }
+
+    @Test fun latestKx11LogWithoutAnyClientRouteStillCannotAuthorizeIpv6Ethernet() {
+        val value = snapshot(iface("wlan0", up = false, addresses = emptyList()),
+            iface("p2p0", up = false, addresses = emptyList()),
+            iface("eth0.11", 11, addresses = listOf(Inet6Address.getByAddress(null, ipv6.address, 11))),
+            iface("dummy0", 3, addresses = listOf(Inet6Address.getByAddress(null, ipv6.address, 3))),
+            ap = emptySet())
+        assertNull(select(value))
+    }
+
+    @Test fun disappearingFactoryRouteResetsStability() {
+        val value = snapshot(iface("eth0"), ap = emptySet())
+        val ready = value.copy(vendorHostAddresses = mapOf("eth0" to ipv4))
+        assertEquals("eth0", await { if (now == 250L) value else ready }.name)
+        assertEquals(1_000L, now)
+    }
+
+    @Test fun sameAddressWithDifferentOwnershipRestartsStability() {
+        val platform = snapshot(iface(), ap = setOf("wlan0"))
+        val factory = platform.copy(vendorHostAddresses = mapOf("wlan0" to ipv4))
+        assertTrue(await { if (now < 250L) factory else platform }.factoryRoute.not())
+        assertEquals(750L, now)
+    }
 }

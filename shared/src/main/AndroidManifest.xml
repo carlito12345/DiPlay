@@ -25,6 +25,8 @@
         android:required="false" />
 
     <queries>
+        <!-- carlito | Locate the installed factory SDK when it is bundled in Geely settings. -->
+        <package android:name="com.geely.settings" />
         <package android:name="com.byd.carsettings" />
         <package android:name="com.byd.appmgr" />
         <package android:name="com.byd.deviceinfo" />

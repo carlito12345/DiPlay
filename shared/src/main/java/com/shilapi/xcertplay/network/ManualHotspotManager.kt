@@ -71,15 +71,6 @@ class ManualHotspotManager(
         }
         require(timeoutMillis > 0) { "timeoutMillis must be positive" }
 
-        val apConfiguration = readApConfiguration()
-        if (apConfiguration != null && apConfiguration.ssid != expectedSsid) {
-            throw WirelessStartupException(WirelessStartupFailure.HOTSPOT_CONFIGURATION,
-                "Manual hotspot SSID does not match the active local AP configuration: " +
-                    "'${apConfiguration.ssid}'",
-            )
-        }
-        validateApConfiguration(apConfiguration)
-
         // 只在候选证据变化时记录，避免每 250ms 重复输出。
         val selected = ManualHotspotReadiness(
             sample = {
@@ -95,16 +86,34 @@ class ManualHotspotManager(
             cancelled = { closed || isCancelled() },
             pause = { millis -> synchronized(waitLock) { if (!closed && !isCancelled()) waitLock.wait(millis) } },
             log = {},
-        ).await(timeoutMillis)
+        ).let { readiness ->
+            try {
+                readiness.await(timeoutMillis)
+            } catch (failure: WirelessStartupException) {
+                // carlito | Preserve the failure category while exposing factory state/path separately.
+                onDiagnostic("manual hotspot readiness failed ${interfaces.vendorDiagnosticSnapshot()}")
+                throw failure
+            }
+        }
+        val factoryRoute = selected.factoryRoute
+        // carlito | The separate factory AP must not inherit the other Android AP's SSID or
+        // security. Use one saved credential pair; require validation for ordinary Android APs.
+        val apConfiguration = if (factoryRoute) null else readApConfiguration()
+        if (apConfiguration != null && apConfiguration.ssid != expectedSsid) {
+            throw WirelessStartupException(WirelessStartupFailure.HOTSPOT_CONFIGURATION,
+                "Manual hotspot SSID does not match the active local AP configuration: " +
+                    "'${apConfiguration.ssid}'")
+        }
+        validateApConfiguration(apConfiguration)
         confirmed = selected
         onDiagnostic("hotspot interface confirmed iface=${selected.name} index=${selected.index} atNs=${System.nanoTime()}")
         val network = NetworkInterface.getByName(selected.name)
         val localInterface = LocalHotspotInterface(selected.name, selected.address,
-            runCatching { network?.hardwareAddress?.toMacAddressString() }.getOrNull()
+            if (factoryRoute) null else (runCatching { network?.hardwareAddress?.toMacAddressString() }.getOrNull()
                 ?.takeUnless { it == "02:00:00:00:00:00" || it == "00:00:00:00:00:00" }
-                ?: HotspotInterfaceBssid.read(selected.name))
-        val connectionFrequency = frequencyFromConnectionInfo()
-        val scanFrequency = frequencyFromScanResult(localInterface)
+                ?: HotspotInterfaceBssid.read(selected.name)))
+        val connectionFrequency = if (factoryRoute) null else frequencyFromConnectionInfo()
+        val scanFrequency = if (factoryRoute) null else frequencyFromScanResult(localInterface)
         val channel = observedManualHotspotChannel(
             apChannel = apConfiguration?.channel ?: 0,
             connectionFrequencyMHz = connectionFrequency,
@@ -125,6 +134,7 @@ class ManualHotspotManager(
         onDiagnostic("Manual hotspot configReadable=${apConfiguration != null} " +
             "security=$security channelKnown=${channel > 0} " +
             "credentialsSource=saved addressPolicy=primary " +
+            "networkSource=${if (factoryRoute) "ecarx_client_route" else "android_ap"} " +
             "hardwareAddressKnown=${localInterface.hardwareAddress != null} iface=${localInterface.name} " +
             "family=${if (localInterface.hostAddress is Inet6Address) "IPv6" else "IPv4"} " +
             "mdnsFamilies=${hostAddresses.joinToString("+") { address -> if (address is Inet6Address) "IPv6" else "IPv4" }}")
@@ -177,6 +187,8 @@ class ManualHotspotManager(
         synchronized(waitLock) { waitLock.notifyAll() }
         interfaces.close()
     }
+
+    override fun connectionDiagnosticSnapshot(): String = interfaces.vendorDiagnosticSnapshot()
 
     private fun validateApConfiguration(configuration: ManualApConfiguration?) {
         configuration ?: return
