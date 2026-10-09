@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="ambient_light_threshold_title">环境光切换门槛</string>
+    <string name="ambient_light_threshold_title">亮度门槛</string>
     <string name="ambient_light_threshold_summary">%1$d lux</string>
     <string name="ambient_light_threshold_value">切换门槛（lux）</string>
-    <string name="ambient_light_threshold_hint">自动模式：低于门槛切换夜间，达到或超过门槛切换日间。读数须持续在门槛另一侧达到设定延迟。请输入 1–200000 的整数。</string>
+    <string name="ambient_light_threshold_hint">低于门槛（lux）切换夜间，达到或超过门槛切换日间。读数须持续在门槛另一侧达到设定延迟。请输入 1–200000 的整数。</string>
     <string name="ambient_light_threshold_error">请输入 1–200000 的整数。</string>
     <string name="ambient_light_reset_defaults">恢复默认值</string>
 </resources>

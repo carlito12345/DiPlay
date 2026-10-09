@@ -112,7 +112,12 @@ internal object CarPlayMediaKeys {
         controller = next
         this.manageAudioFocus = manageAudioFocus
         steeringProfile = SteeringProfiles.loadEnabled(context)
-        next.playbackListener = { playing -> onMediaPlaying(playing); onIphonePlaying(next, playing) }
+        com.shilapi.xcertplay.media.AmbientMusicController.claimPlaybackOwner(next)
+        next.playbackListener = { playing ->
+            com.shilapi.xcertplay.media.AmbientMusicController.phonePlaybackChanged(next, playing)
+            onMediaPlaying(playing)
+            onIphonePlaying(next, playing)
+        }
         next.nowPlayingListener = { update -> onNowPlayingChanged(next, update) }
         next.artworkListener = { id, bytes -> onArtworkChanged(next, id, bytes) }
         syncGeelyInputLocked()
@@ -122,6 +127,7 @@ internal object CarPlayMediaKeys {
     @Synchronized
     fun detach(expected: CarPlayController?) {
         if (expected == null || controller !== expected) return
+        com.shilapi.xcertplay.media.AmbientMusicController.releasePlaybackOwner(expected)
         expected.playbackListener = null
         expected.nowPlayingListener = null
         expected.artworkListener = null

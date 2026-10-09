@@ -29,7 +29,7 @@
     <string name="settings_reconnect_pending">Guardado. Algunos cambios se aplican cuando CarPlay se vuelve a conectar.</string>
     <string name="settings_reconnect_now">Reconectar ahora</string>
     <string name="settings_byd_navigation_unavailable">La guía de BYD en el cuadro de instrumentos y el HUD no está disponible en esta unidad principal.</string>
-    <string name="settings_search_hint">Nombre del ajuste, por ejemplo velocidad de fotogramas</string>
+    <string name="settings_search_hint">Buscar ajustes</string>
     <string name="settings_search_empty">Ningún ajuste coincide. Prueba con otra palabra.</string>
     <string name="settings_ready_wireless">CarPlay inalámbrico se conectará a %1$s.</string>
     <string name="settings_ready_usb">Conecta tu iPhone con un cable USB para iniciar CarPlay.</string>

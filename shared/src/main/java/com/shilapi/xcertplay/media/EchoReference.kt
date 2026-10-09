@@ -1,5 +1,8 @@
 package com.shilapi.xcertplay.media
 
+import kotlin.math.abs
+import kotlin.math.sign
+
 /**
  * The far-end call audio as the car's speakers play it, for the microphone's echo canceller.
  *
@@ -12,6 +15,11 @@ internal class EchoReference(val sampleRate: Int, capacityMillis: Int = 2_000) {
     private var written = 0L
     private var anchorSample = NOT_PLAYING
     private var anchorNs = 0L
+    private var cursor = NOT_PLAYING
+    private var settled = false
+    private val errors = LongArray(ERROR_WINDOW)
+    private var errorAt = 0
+    private var errorCount = 0
 
     /**
      * [pcm] is 16-bit little-endian, interleaved over [channels]. [pendingFrames] is the audio still
@@ -42,17 +50,28 @@ internal class EchoReference(val sampleRate: Int, capacityMillis: Int = 2_000) {
     fun reset() {
         written = 0
         anchorSample = NOT_PLAYING
+        cursor = NOT_PLAYING
     }
 
-    /** Fills [out] with what the speaker played over the window ending at [endNs]; false when that was silence. */
+    /**
+     * Fills [out] with what the speaker played over the window ending at [endNs]; false when that was silence.
+     *
+     * The speaker clock estimate jitters by the playback head's update granularity (often 5-20 ms), and
+     * an adaptive echo filter cannot converge on a reference that jumps by that much. So consecutive reads
+     * continue contiguously from the previous window, and the estimate only steers that cursor: one snap
+     * once its error has averaged out, a one-sample slew when it slowly drifts apart, and a full resync
+     * when playback restarts or slips by more than [RESYNC_MILLIS].
+     */
     @Synchronized
     fun read(out: ShortArray, endNs: Long): Boolean {
         if (anchorSample == NOT_PLAYING) {
+            cursor = NOT_PLAYING
             out.fill(0)
             return false
         }
-        val end = anchorSample + Math.floorDiv((endNs - anchorNs) * sampleRate, 1_000_000_000L)
-        val start = end - out.size
+        val estimate = anchorSample + Math.floorDiv((endNs - anchorNs) * sampleRate, 1_000_000_000L) - out.size
+        val start = steer(estimate)
+        cursor = start + out.size
         val oldest = maxOf(0L, written - ring.size)
         var heard = false
         for (i in out.indices) {
@@ -67,7 +86,39 @@ internal class EchoReference(val sampleRate: Int, capacityMillis: Int = 2_000) {
         return heard
     }
 
+    private fun steer(estimate: Long): Long {
+        if (cursor == NOT_PLAYING) {
+            cursor = estimate
+            settled = false
+            errorCount = 0
+            return cursor
+        }
+        errors[errorAt] = estimate - cursor
+        errorAt = (errorAt + 1) % errors.size
+        if (errorCount < errors.size) errorCount++
+        if (errorCount == errors.size) {
+            val mean = errors.sum() / errors.size
+            when {
+                abs(mean) > sampleRate * RESYNC_MILLIS / 1000L -> {
+                    cursor = estimate
+                    settled = false
+                    errorCount = 0
+                }
+                !settled -> {
+                    cursor += mean
+                    settled = true
+                    errorCount = 0
+                }
+                abs(mean) > sampleRate * SLEW_MILLIS / 1000L -> cursor += mean.sign
+            }
+        }
+        return cursor
+    }
+
     private companion object {
         const val NOT_PLAYING = Long.MIN_VALUE
+        const val ERROR_WINDOW = 10
+        const val SLEW_MILLIS = 5
+        const val RESYNC_MILLIS = 20
     }
 }

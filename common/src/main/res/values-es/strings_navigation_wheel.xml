@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_navigation_wheel_volume">Volumen del volante durante las indicaciones de navegación (experimental)</string>
+    <string name="settings_navigation_wheel_volume_description">Durante las indicaciones habladas de CarPlay, las teclas de volumen ajustan el flujo de audio de navegación seleccionado. En otros momentos siguen el comportamiento del equipo. Requiere permiso de accesibilidad para las teclas del volante. Las llamadas, el zoom del mapa y el joystick tienen prioridad. Probado localmente en un Tang de plataforma 21; la versión upstream aún requiere pruebas en el vehículo. No se interceptan las rutas automáticas ni multimedia.</string>
+    <string name="settings_navigation_wheel_service_required">Permite el servicio de accesibilidad de las teclas del volante en los ajustes de Android o usa el botón de autorización ADB existente.</string>
+</resources>

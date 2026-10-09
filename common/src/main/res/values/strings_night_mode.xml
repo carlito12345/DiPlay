@@ -9,7 +9,7 @@
     <string name="settings_switch_to_light_appearance">Switch to light appearance</string>
     <string name="settings_switch_to_dark_appearance">Switch to dark appearance</string>
     <string name="carplay_night_system">Follow Android system</string>
-    <string name="carplay_night_ambient">Automatic (ambient light)</string>
+    <string name="carplay_night_ambient">Follow ambient light</string>
     <string name="carplay_night_day">Always day</string>
     <string name="carplay_night_night">Always night</string>
     <string name="carplay_night_schedule">Scheduled</string>
@@ -18,6 +18,6 @@
     <string name="carplay_night_schedule_hint">Uses the head unit’s local time. Set different start and end times; overnight ranges are supported.</string>
     <string name="carplay_night_schedule_same_time">Start and end times must differ.</string>
     <string name="carplay_night_hint">Save and return to CarPlay to apply.</string>
-    <string name="carplay_night_ambient_hint">Automatic mode uses the threshold and delay below; without a light sensor, it follows Android.</string>
-    <string name="carplay_night_time_note">CarPlay Automatic also uses iPhone time: at night, Always day may still appear dark.</string>
+    <string name="carplay_night_ambient_hint">Uses the threshold and delay below. Without a light sensor, it follows Android.</string>
+    <string name="carplay_night_time_note">When appearance is set to Automatic in CarPlay settings, CarPlay also considers the iPhone time. Even if you select Always day, CarPlay may still appear dark at night.</string>
 </resources>

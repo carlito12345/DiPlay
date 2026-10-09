@@ -217,9 +217,9 @@ class NightModeSettingsTest {
             assertEquals(activity.getString(id), expected, button(id).isShown)
         }
         assertEquals(expected, label(R.string.carplay_night_ambient_hint).isShown)
-        for (id in listOf(R.string.carplay_night_hint, R.string.carplay_night_time_note, R.string.picture_adjustments)) {
-            assertTrue(activity.getString(id), label(id).isShown)
-        }
+        val nightHint = "${activity.getString(R.string.carplay_night_hint)} ${activity.getString(R.string.carplay_night_time_note)}"
+        assertTrue(nightHint, views(page).filterIsInstance<TextView>().single { it.text == nightHint }.isShown)
+        assertTrue(activity.getString(R.string.picture_adjustments), label(R.string.picture_adjustments).isShown)
     }
 
     private fun assertScheduleVisible(expected: Boolean) {

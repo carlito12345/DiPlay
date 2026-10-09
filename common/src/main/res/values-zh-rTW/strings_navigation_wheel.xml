@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_navigation_wheel_volume">導航播報時方向盤調節導航音量（實驗性）</string>
+    <string name="settings_navigation_wheel_volume_description">CarPlay 導航播報期間，音量鍵調節所選導航音訊串流；其他時候按車機原有方式處理。需要方向盤按鍵無障礙權限。通話、地圖縮放和搖桿保持優先。已在唐平台 21 車機本地驗證，上游版本仍待實車測試；不攔截自動或媒體音訊路由。</string>
+    <string name="settings_navigation_wheel_service_required">請在 Android 設定中允許方向盤按鍵無障礙服務，或使用現有 ADB 授權按鈕。</string>
+</resources>

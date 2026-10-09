@@ -2,6 +2,7 @@ package com.shilapi.xcertplay
 
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageInfo
+import android.view.Surface
 import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
@@ -10,13 +11,17 @@ import android.widget.TextView
 import com.shilapi.xcertplay.adb.LocalAdb
 import com.shilapi.xcertplay.host.R
 import com.shilapi.xcertplay.hud.BydOutputSettings
+import com.shilapi.xcertplay.hud.BydVehicleCapabilities
 import com.shilapi.xcertplay.hud.BydVehicleFieldStore
+import com.shilapi.xcertplay.media.AndroidMediaSink
 import com.shilapi.xcertplay.network.CarHotspotSettings
+import com.shilapi.xcertplay.orchestration.CarPlayController
 import com.shilapi.xcertplay.orchestration.WirelessHotspotMode
 import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mockito.Mockito.mock
 import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
@@ -83,9 +88,67 @@ class BydAdbSettingsUiTest {
             render(LocalAdb.Access.READY)
             assertEquals(if (mode == WirelessHotspotMode.MANUAL) View.VISIBLE else View.GONE, controls.visibility)
             assertEquals(mode == WirelessHotspotMode.MANUAL, labels(controls).contains(activity.getString(R.string.auto_car_hotspot_title)))
-            assertEquals(3, switches(advancedVehicleData()).size)
+            val vehicleSwitches = switches(advancedVehicleData())
+            assertEquals(setOf(
+                R.string.car_battery_for_the_iphone, R.string.wheel_speed_for_tunnels,
+                R.string.video_while_parked, R.string.bt_suspend_during_carplay,
+            ).map { activity.getString(it) }.toSet(), vehicleSwitches.map { it.contentDescription.toString() }.toSet())
+            assertFalse(vehicleSwitches.single {
+                it.contentDescription == activity.getString(R.string.bt_suspend_during_carplay)
+            }.isChecked)
+            assertFalse(AirPlayPersistence.loadBtSuspendDuringCarplay(activity))
             assertTrue(CarHotspotSettings.enabled(activity))
             assertTrue(AirPlayPersistence.loadAutoStartOnBoot(activity))
+        }
+    }
+
+    @Test fun bluetoothPauseRemainsAvailableWhenSavedProbeHasNoBatteryCapability() {
+        BydVehicleFieldStore.save(activity, BydVehicleCapabilities(
+            fields = emptyMap(), catalogAvailable = false, firmwareKey = BydVehicleFieldStore.firmwareKey(),
+        ))
+        BydOutputSettings.setLegacyVehicleProbe(activity, true)
+        AirPlayPersistence.saveBtSuspendDuringCarplay(activity, true)
+        AirPlayPersistence.saveBtSuspendDelaySeconds(activity, 15)
+
+        val advanced = advancedVehicleData()
+        val pause = switches(advanced).single {
+            it.contentDescription == activity.getString(R.string.bt_suspend_during_carplay)
+        }
+        assertTrue(pause.isChecked)
+        assertTrue(pause.isEnabled)
+        assertFalse(switches(advanced).any {
+            it.contentDescription == activity.getString(R.string.car_battery_for_the_iphone)
+        })
+        assertTrue(labels(advanced).any { it.contains(activity.getString(R.string.bt_suspend_delay)) })
+        assertTrue(labels(advanced).any { it.contains(activity.getString(R.string.bt_suspend_delay_option, 15)) })
+        assertTrue(AirPlayPersistence.loadBtSuspendDuringCarplay(activity))
+        assertEquals(15, AirPlayPersistence.loadBtSuspendDelaySeconds(activity))
+
+        ReflectionHelpers.setField(activity, "adbSwitchChangePending", true)
+        assertFalse(switches(advancedVehicleData()).single {
+            it.contentDescription == activity.getString(R.string.bt_suspend_during_carplay)
+        }.isEnabled)
+    }
+
+    @Test fun bluetoothPauseChangesApplyAtTheNextConnectionWithoutDroppingTheSession() {
+        AirPlayPersistence.saveBtSuspendDuringCarplay(activity, true)
+        val session = mock(CarPlayController::class.java)
+        var stops = 0
+        CarPlayBackgroundSession.store(session, mock(AndroidMediaSink::class.java), 800, 480, Any(),
+            CarPlaySessionDisplay(800, 480, Surface.ROTATION_0, false, false, 800, 480)) { stops++ }
+        CarPlayBackgroundSession.active = true
+        try {
+            PendingReconnect.clear()
+            switches(advancedVehicleData()).single {
+                it.contentDescription == activity.getString(R.string.bt_suspend_during_carplay)
+            }.performClick()
+            assertFalse(AirPlayPersistence.loadBtSuspendDuringCarplay(activity))
+            assertTrue(PendingReconnect.isPending(session))
+            assertSame(session, CarPlayBackgroundSession.snapshot()?.controller)
+            assertEquals(0, stops)
+        } finally {
+            CarPlayBackgroundSession.clear()
+            PendingReconnect.clear()
         }
     }
 

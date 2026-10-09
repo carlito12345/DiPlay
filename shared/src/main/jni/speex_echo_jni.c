@@ -35,9 +35,11 @@ Java_com_shilapi_xcertplay_media_SpeexEchoCanceller_nativeCreate(
     }
     spx_int32_t value = rate;
     speex_echo_ctl(c->echo, SPEEX_ECHO_SET_SAMPLING_RATE, &value);
-    // Platform noise suppression and gain already run on the recorder; only remove residual echo here.
-    value = 0;
+    // The recorder's own noise suppression is disabled while this runs (it would distort the echo the
+    // filter models), so denoise here, after cancelling. Gain stays with the platform.
+    value = 1;
     speex_preprocess_ctl(c->preprocess, SPEEX_PREPROCESS_SET_DENOISE, &value);
+    value = 0;
     speex_preprocess_ctl(c->preprocess, SPEEX_PREPROCESS_SET_AGC, &value);
     speex_preprocess_ctl(c->preprocess, SPEEX_PREPROCESS_SET_VAD, &value);
     speex_preprocess_ctl(c->preprocess, SPEEX_PREPROCESS_SET_DEREVERB, &value);

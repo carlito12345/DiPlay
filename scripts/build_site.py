@@ -8,7 +8,7 @@ SITE = ROOT / 'site'
 data = json.loads((SITE / 'content.json').read_text())
 BASE = 'https://shihabal3amri.github.io/DiPlay/'
 REPO = 'https://github.com/shihabal3amri/DiPlay'
-VERSION = '0.2.15'
+VERSION = '0.2.16'
 RELEASE = REPO + f'/releases/tag/v{VERSION}'
 DOWNLOAD = REPO + f'/releases/download/v{VERSION}/DiPlay-{VERSION}.apk'
 for lang, d in data.items():

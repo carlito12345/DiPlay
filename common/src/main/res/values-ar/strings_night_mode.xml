@@ -9,7 +9,7 @@
     <string name="settings_switch_to_light_appearance">التبديل إلى المظهر الفاتح</string>
     <string name="settings_switch_to_dark_appearance">التبديل إلى المظهر الداكن</string>
     <string name="carplay_night_system">اتباع نظام Android</string>
-    <string name="carplay_night_ambient">تلقائي (الإضاءة المحيطة)</string>
+    <string name="carplay_night_ambient">حسب الإضاءة المحيطة</string>
     <string name="carplay_night_day">نهار دائمًا</string>
     <string name="carplay_night_night">ليل دائمًا</string>
     <string name="carplay_night_schedule">حسب الجدول الزمني</string>
@@ -18,6 +18,6 @@
     <string name="carplay_night_schedule_hint">يستخدم التوقيت المحلي لوحدة السيارة. يجب أن يختلف وقت البداية والنهاية، ويمكن أن تمتد الفترة عبر منتصف الليل.</string>
     <string name="carplay_night_schedule_same_time">يجب أن يختلف وقت البداية والنهاية.</string>
     <string name="carplay_night_hint">احفظ ثم عد إلى CarPlay للتطبيق.</string>
-    <string name="carplay_night_ambient_hint">يستخدم الوضع التلقائي العتبة والتأخير أدناه؛ ويتبع Android عند غياب مستشعر الضوء.</string>
-    <string name="carplay_night_time_note">يراعي مظهر CarPlay التلقائي وقت iPhone أيضًا؛ لذا قد يبقى داكنًا ليلًا حتى عند اختيار نهار دائمًا.</string>
+    <string name="carplay_night_ambient_hint">يستخدم العتبة والتأخير أدناه. ويتبع Android عند غياب مستشعر الضوء.</string>
+    <string name="carplay_night_time_note">عند اختيار المظهر التلقائي في إعدادات CarPlay، يراعي CarPlay وقت iPhone أيضًا. حتى إذا اخترت نهار دائمًا، فقد يظهر CarPlay بمظهر داكن ليلًا.</string>
 </resources>

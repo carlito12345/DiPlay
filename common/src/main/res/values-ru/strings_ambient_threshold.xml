@@ -3,7 +3,7 @@
     <string name="ambient_light_threshold_title">Порог освещённости</string>
     <string name="ambient_light_threshold_summary">%1$d lux</string>
     <string name="ambient_light_threshold_value">Порог переключения (lux)</string>
-    <string name="ambient_light_threshold_hint">Автоматический режим: ниже порога — ночной, на пороге и выше — дневной. Показания должны оставаться по другую сторону порога в течение выбранной задержки. Введите целое число от 1 до 200000.</string>
+    <string name="ambient_light_threshold_hint">Ниже порога (lux) — ночной, на пороге и выше — дневной. Показания должны оставаться по другую сторону порога в течение выбранной задержки. Введите целое число от 1 до 200000.</string>
     <string name="ambient_light_threshold_error">Введите целое число от 1 до 200000.</string>
     <string name="ambient_light_reset_defaults">Сбросить по умолчанию</string>
 </resources>

@@ -35,6 +35,7 @@ class WheelKeyServiceTest {
 
     @Before fun setUp() {
         service = Robolectric.buildService(WheelKeyService::class.java).create().get()
+        service.getSharedPreferences("diplay_navigation_wheel", Context.MODE_PRIVATE).edit().clear().commit()
         service.getSharedPreferences("diplay_wheel_map_zoom", Context.MODE_PRIVATE).edit().clear().commit()
         service.mapRoute = { route }
         WheelZoomSettings.setEnabled(service, true)
@@ -367,4 +368,40 @@ class WheelKeyServiceTest {
         verify(controller, times(1)).endCall()
         assertEquals(1, siriRequests)
     }
+    @Test
+    @Config(sdk = [25, 29])
+    fun guidanceChangesOnlyNavigationAndStopsNewCapturesAfterGuidance() {
+        WheelZoomSettings.setEnabled(service, false)
+        service.session = { "phone" }
+        var playback = com.shilapi.xcertplay.media.NavigationPlaybackSnapshot(true, AudioManager.STREAM_NOTIFICATION)
+        service.navigationPlayback = { playback }
+        val audio = service.getSystemService(AudioManager::class.java)
+        audio.setStreamVolume(AudioManager.STREAM_NOTIFICATION, 2, 0)
+        audio.setStreamVolume(AudioManager.STREAM_MUSIC, 3, 0)
+        val prefs = service.getSharedPreferences("diplay_navigation_wheel", Context.MODE_PRIVATE)
+        // The disabled default must pass the initial wheel press through.
+        fun event(action: Int, time: Long, repeat: Int = 0) = KeyEvent(time, time, action,
+            KeyEvent.KEYCODE_VOLUME_UP, repeat)
+        fun dispatch(event: KeyEvent): Boolean = service.javaClass
+            .getDeclaredMethod("onKeyEvent", KeyEvent::class.java).apply { isAccessible = true }
+            .invoke(service, event) as Boolean
+        assertFalse(dispatch(event(KeyEvent.ACTION_DOWN, 1)))
+        prefs.edit().putBoolean("enabled", true).commit()
+        assertTrue(dispatch(event(KeyEvent.ACTION_DOWN, 2)))
+        assertEquals(3, audio.getStreamVolume(AudioManager.STREAM_NOTIFICATION))
+        assertEquals(3, audio.getStreamVolume(AudioManager.STREAM_MUSIC))
+        playback = com.shilapi.xcertplay.media.NavigationPlaybackSnapshot(false, null)
+        assertTrue(dispatch(event(KeyEvent.ACTION_DOWN, 2, 1)))
+        assertTrue(dispatch(event(KeyEvent.ACTION_UP, 2)))
+        assertEquals(3, audio.getStreamVolume(AudioManager.STREAM_NOTIFICATION))
+        assertFalse(dispatch(event(KeyEvent.ACTION_DOWN, 3)))
+        playback = com.shilapi.xcertplay.media.NavigationPlaybackSnapshot(true, AudioManager.STREAM_MUSIC)
+        assertFalse(dispatch(event(KeyEvent.ACTION_DOWN, 4)))
+        playback = com.shilapi.xcertplay.media.NavigationPlaybackSnapshot(true, null)
+        assertFalse(dispatch(event(KeyEvent.ACTION_DOWN, 5)))
+        playback = com.shilapi.xcertplay.media.NavigationPlaybackSnapshot(true, AudioManager.STREAM_NOTIFICATION, true)
+        assertFalse(dispatch(event(KeyEvent.ACTION_DOWN, 6)))
+        assertEquals(3, audio.getStreamVolume(AudioManager.STREAM_MUSIC))
+    }
+
 }

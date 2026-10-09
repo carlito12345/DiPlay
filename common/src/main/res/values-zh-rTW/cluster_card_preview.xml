@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="card_preview_title">轉向卡位置預覽</string>
+    <string name="card_preview_note">依整個儀表面板比例顯示位置；實際小視窗邊界因車型而異。</string>
+    <string name="card_preview_full">全螢幕</string>
+    <string name="card_preview_small">小視窗</string>
+</resources>

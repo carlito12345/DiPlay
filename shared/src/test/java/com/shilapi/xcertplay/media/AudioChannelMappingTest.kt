@@ -97,6 +97,18 @@ class AudioChannelMappingTest {
     }
 
     @Test
+    fun aPhoneCallOnTheSpeakerUsesTheMediaChannel() {
+        val phone = AudioChannelMapper.map("telephony", 100, AudioChannelMappingMode.MOBILE_COMPATIBLE)
+        assertEquals(AudioChannel.PHONE, phone.channel)
+        assertEquals(
+            AudioChannelSelection(AudioChannel.MEDIA, AudioContentType.SPEECH, phone.streamType),
+            AudioChannelMapper.playCallOnSpeaker(phone),
+        )
+        val media = AudioChannelMapper.map("media", 100, AudioChannelMappingMode.MOBILE_COMPATIBLE)
+        assertEquals(media, AudioChannelMapper.playCallOnSpeaker(media))
+    }
+
+    @Test
     fun navigationStreamTypeIsOnlyAppliedToGuidanceChannels() {
         val custom = 7
         assertEquals(

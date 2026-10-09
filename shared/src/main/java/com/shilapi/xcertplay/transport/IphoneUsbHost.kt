@@ -339,7 +339,7 @@ class Iap2UsbSession internal constructor(
     private var closed = false
     private var failure: IphoneUsbException? = null
     private var pendingRead: UsbRequest? = null
-    private val readQueuePolicy = UsbReadQueuePolicy()
+    private val readQueuePolicy = UsbReadQueuePolicy.forCurrentPlatform()
     private val requests = UsbRequestQueue(connection, "usbmux-read-reaper")
 
     fun write(data: ByteArray, timeoutMillis: Int) = synchronized(writeLock) {

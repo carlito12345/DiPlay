@@ -29,7 +29,7 @@
     <string name="settings_reconnect_pending">Сохранено. Некоторые изменения вступят в силу после переподключения CarPlay.</string>
     <string name="settings_reconnect_now">Переподключить</string>
     <string name="settings_byd_navigation_unavailable">Подсказки BYD на приборной панели и HUD недоступны на этом головном устройстве.</string>
-    <string name="settings_search_hint">Название настройки, например частота кадров</string>
+    <string name="settings_search_hint">Поиск настроек</string>
     <string name="settings_search_empty">Ничего не найдено. Попробуйте другое слово.</string>
     <string name="settings_ready_wireless">Беспроводной CarPlay подключится к %1$s.</string>
     <string name="settings_ready_usb">Подключите iPhone кабелем USB, чтобы запустить CarPlay.</string>

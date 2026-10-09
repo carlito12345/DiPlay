@@ -22,6 +22,11 @@ object ClusterTurnCardOverlay {
 
     /** Card width as percent of the visible navi window; one slider step = 5 %. */
     val sizePercents = listOf(30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95)
+
+    /** Small-window card placement (percent of the panel), 1 % steps. */
+    val smallWindowXPercents = (10..90 step 1).toList()
+    val smallWindowYPercents = (15..70 step 1).toList()
+
     const val DEFAULT_SIZE_PERCENT = 55
 
     fun card(

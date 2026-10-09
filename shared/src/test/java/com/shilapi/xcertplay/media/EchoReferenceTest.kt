@@ -49,4 +49,73 @@ class EchoReferenceTest {
         reference.reset()
         assertFalse(reference.read(ShortArray(2), endNs = 0))
     }
+
+    // 1 kHz, sample n holds value n, so a window's first value is the sample position it started at.
+    private fun ramp(samples: Int = 1_000) = EchoReference(sampleRate = 1_000).also {
+        it.append(pcm(*IntArray(samples) { n -> n }), 0, samples * 2, 1, pendingFrames = samples.toLong(), nowNs = 0)
+    }
+
+    /** Moves the speaker anchor without writing audio: [played] samples have reached the speaker at [nowMs]. */
+    private fun EchoReference.anchor(played: Long, nowMs: Long, written: Long = 1_000) =
+        append(ByteArray(0), 0, 0, 1, pendingFrames = written - played, nowNs = nowMs * 1_000_000)
+
+    @Test fun jitteryClockEstimatesStillGiveContiguousWindows() {
+        val reference = ramp()
+        val out = ShortArray(10)
+        val jitter = intArrayOf(0, 3, -4, 2, -1, 4, -3, 1, -2, 0, 3, -4, 2, -1, 4, -3, 1, -2, 0, 3)
+        val starts = jitter.mapIndexed { frame, error ->
+            val endMs = 10L * (frame + 1)
+            // The true speaker position is endMs; the anchor reports it off by up to 4 ms.
+            reference.anchor(played = endMs + error, nowMs = endMs)
+            assertTrue(reference.read(out, endNs = endMs * 1_000_000))
+            for (i in 1 until out.size) assertEquals(out[0] + i, out[i].toInt())
+            out[0].toInt()
+        }
+        assertEquals(0, starts[0])
+        for (frame in 1 until starts.size) assertEquals("frame $frame", starts[frame - 1] + 10, starts[frame])
+    }
+
+    @Test fun aSteadyOffsetIsCorrectedOnceTheEstimateSettles() {
+        val reference = ramp()
+        val out = ShortArray(10)
+        // The first estimate happens to be 4 ms early; every later one is exact.
+        val starts = (0 until 12).map { frame ->
+            val endMs = 100L + 10 * frame
+            reference.anchor(played = endMs + if (frame == 0) -4 else 0, nowMs = endMs)
+            reference.read(out, endNs = endMs * 1_000_000)
+            out[0].toInt()
+        }
+        assertEquals(86, starts[0])
+        assertEquals(176, starts[9])
+        assertEquals(190, starts[10])
+        assertEquals(200, starts[11])
+    }
+
+    @Test fun aLargeSlipResynchronisesToTheEstimate() {
+        val reference = ramp()
+        val out = ShortArray(10)
+        val starts = (0 until 30).map { frame ->
+            val endMs = 10L * (frame + 1)
+            // From frame 15 on, playback is 50 ms behind (an underrun the cursor did not see).
+            reference.anchor(played = endMs - if (frame >= 15) 50 else 0, nowMs = endMs)
+            reference.read(out, endNs = endMs * 1_000_000)
+            out[0].toInt()
+        }
+        assertEquals(190, starts[19])
+        assertEquals(200 - 50, starts[20])
+        assertEquals(290 - 50, starts[29])
+    }
+
+    @Test fun playbackStoppingRestartsTheCursorFromTheNextEstimate() {
+        val reference = ramp()
+        val out = ShortArray(10)
+        reference.anchor(played = 10, nowMs = 10)
+        reference.read(out, endNs = 10_000_000)
+        assertEquals(0, out[0].toInt())
+        reference.append(ByteArray(0), 0, 0, 1, pendingFrames = null, nowNs = 20_000_000)
+        assertFalse(reference.read(out, endNs = 20_000_000))
+        reference.anchor(played = 500, nowMs = 600)
+        assertTrue(reference.read(out, endNs = 600_000_000))
+        assertEquals(490, out[0].toInt())
+    }
 }

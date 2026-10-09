@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_navigation_wheel_volume">Wheel volume during navigation guidance (experimental)</string>
+    <string name="settings_navigation_wheel_volume_description">During spoken CarPlay guidance, volume keys adjust the selected navigation audio stream. Otherwise keys follow the head unit. Requires wheel key accessibility permission. Calls, map zoom and joystick keep priority. Tested locally on a Tang platform-21 head unit; upstream in-car testing is pending. Automatic or media routing is not intercepted.</string>
+    <string name="settings_navigation_wheel_service_required">Allow the wheel key accessibility service in Android settings, or use the existing ADB authorization button.</string>
+</resources>

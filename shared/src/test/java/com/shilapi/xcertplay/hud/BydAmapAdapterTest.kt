@@ -59,8 +59,17 @@ class BydAmapAdapterTest {
         assertEquals("1 h 5 min", text.duration(3900))
         assertNull(text.duration(-1))
         val utc = java.util.TimeZone.getTimeZone("UTC")
-        assertEquals("15:55", text.arrival(15L * 3_600_000 + 45 * 60_000, 600, utc, use24Hour = true))
-        assertEquals("3:55", text.arrival(15L * 3_600_000 + 45 * 60_000, 600, utc, use24Hour = false))
+        assertEquals("预计15:55到达", text.arrival(15L * 3_600_000 + 45 * 60_000, 600, utc, use24Hour = true))
+        assertEquals("预计3:55到达", text.arrival(15L * 3_600_000 + 45 * 60_000, 600, utc, use24Hour = false))
+        assertNull(text.arrival(0, -1, utc, use24Hour = true))
+    }
+
+    @Test
+    fun clusterShowsTheWholeArrivalTimeAfterTrimmingAmapsWords() {
+        val utc = java.util.TimeZone.getTimeZone("UTC")
+        val eta = BydDiLink3GuidanceText.arrival(11L * 3_600_000 + 42 * 60_000, 7 * 60, utc, use24Hour = true)!!
+        // The cluster drops two characters at each end; a bare "11:49" became ":4" in #384.
+        assertEquals("11:49", eta.substring(2, eta.length - 2))
     }
 
     @Test

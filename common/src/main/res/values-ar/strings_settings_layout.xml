@@ -29,7 +29,7 @@
     <string name="settings_reconnect_pending">تم الحفظ. تُطبَّق بعض التغييرات عند إعادة اتصال CarPlay.</string>
     <string name="settings_reconnect_now">إعادة الاتصال الآن</string>
     <string name="settings_byd_navigation_unavailable">إرشادات BYD على لوحة العدادات والشاشة الأمامية غير متاحة في هذه الوحدة الرئيسية.</string>
-    <string name="settings_search_hint">اسم الإعداد، مثل معدل الإطارات</string>
+    <string name="settings_search_hint">ابحث في الإعدادات</string>
     <string name="settings_search_empty">لا يوجد إعداد مطابق. جرّب كلمة أخرى.</string>
     <string name="settings_ready_wireless">سيتصل CarPlay اللاسلكي بـ %1$s.</string>
     <string name="settings_ready_usb">وصّل iPhone بكابل USB لبدء CarPlay.</string>

@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="ambient_light_threshold_title">Umbral de luz ambiental</string>
+    <string name="ambient_light_threshold_title">Umbral de luminosidad</string>
     <string name="ambient_light_threshold_summary">%1$d lux</string>
     <string name="ambient_light_threshold_value">Umbral de cambio (lux)</string>
-    <string name="ambient_light_threshold_hint">Modo automático: por debajo del umbral se activa el modo nocturno; al alcanzarlo o superarlo, el diurno. La lectura debe permanecer al otro lado durante el retardo elegido. Introduce un entero entre 1 y 200000.</string>
+    <string name="ambient_light_threshold_hint">Por debajo del umbral (lux) se activa el modo nocturno; al alcanzarlo o superarlo, el diurno. La lectura debe permanecer al otro lado durante el retardo elegido. Introduce un entero entre 1 y 200000.</string>
     <string name="ambient_light_threshold_error">Introduce un entero entre 1 y 200000.</string>
     <string name="ambient_light_reset_defaults">Restablecer valor predeterminado</string>
 </resources>

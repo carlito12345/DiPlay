@@ -111,6 +111,21 @@ class AudioFocusAutoYieldTest {
         assertTrue(volumes(second).isEmpty())
     }
 
+    @Test fun droppedQueuedFocusCallbackReportsWhyWithoutChangingNewMedia() {
+        val diagnostics = mutableListOf<String>()
+        val coordinator = AudioFocusCoordinator(context, true, true, diagnostics::add).also(coordinators::add)
+        val first = track(); val second = track()
+        coordinator.acquire(first, AudioChannel.MEDIA, attributes)
+        val oldListener = coordinator.listener
+        coordinator.release(first)
+        oldListener.onAudioFocusChange(AudioManager.AUDIOFOCUS_LOSS)
+        assertTrue(diagnostics.last().contains("dropped stale=true noRequest=true activeTracks=0"))
+        coordinator.acquire(second, AudioChannel.MEDIA, attributes)
+        oldListener.onAudioFocusChange(AudioManager.AUDIOFOCUS_LOSS_TRANSIENT)
+        assertTrue(diagnostics.last().contains("dropped stale=true noRequest=false activeTracks=1"))
+        assertTrue(volumes(second).isEmpty())
+    }
+
     @Test fun failedReplacementRequestDoesNotRestoreMutedMedia() {
         val coordinator = coordinator()
         val first = track(); val phone = track(); val second = track()

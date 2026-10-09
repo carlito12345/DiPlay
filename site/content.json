@@ -24,14 +24,14 @@
     ],
     "adb": "Installation & connection help",
     "bssid": "ADB is not required for everyday use. APK installation options depend on the car. No manual MAC address entry.",
-    "whats": "New in 0.2.15",
+    "whats": "New in 0.2.16",
     "features": [
-      "First-launch DiLink setup guide and manual checks for official updates in About.",
-      "Light, Dark and Auto appearance for DiPlay, with improved compact landscape/portrait layouts and dedicated Language/About settings.",
-      "Improved music-buffer recovery after underruns and a main-video decoder frame-rate hint with compatibility fallback.",
-      "Wi-Fi Direct Auto 5 GHz / Auto 2.4 GHz choices and optional launch when the selected iPhone reconnects over Bluetooth.",
-      "Corrected turning-canvas dimensions, 1% turn-card placement and optional small-window navigation-marker layouts. Experimental Auto following reconnects CarPlay.",
-      "Experimental car Bluetooth audio stays off by default. Explicit ADB boot-start repair and other vehicle features depend on firmware; test optional features while parked."
+      "Siri and wireless calls send the microphone on Android 7.1–9 head units that have no Opus encoder, using a bundled software encoder.",
+      "Wired USB fixes for NCM framing and Android 8 reads, with smaller-read retries when a head unit rejects a large USB read.",
+      "Wireless recovery refreshes hotspot addresses after a connection timeout, with Android 17 local-network permission and WPA3 security for the car hotspot.",
+      "Experimental Low-latency decoding and Direct video output, plus an FPS counter in Diagnostics. All are off by default.",
+      "Inline Settings search, a confirmation before the quick menu discards unapplied changes, and an Off option for the CarPlay swipe-down gesture.",
+      "1% sliders for the dashboard car marker and separate small-window turn-card placement. Experimental car Bluetooth pause and ambient lighting need ADB and are off by default; test optional features while parked."
     ],
     "compat": "Before you try it",
     "compatText": "A public preview, not an Apple-certified product. Authentication uses an experimental accessory identity recovered from public firmware; future acceptance is not guaranteed. Some head units still show stuttering or ignore icon-size changes. Start with 30 fps and HEVC off; try a lower resolution if needed.",
@@ -46,8 +46,8 @@
     "privacy": "Privacy",
     "footer": "Independent project based on xcertplay, with interface design from DiAuto. Not affiliated with Apple or BYD. CarPlay and its icon belong to Apple Inc.",
     "supportScope": "These projects focus on BYD cars. They may work on other brands, but other brands are unsupported and there are no plans to add support or fix brand-specific incompatibilities.",
-    "diagnosticsTitle": "Please send fresh reports from 0.2.15",
-    "diagnosticsText": "1. Update to 0.2.15, reproduce the issue and note the failure time. 2. Open Settings → Diagnostics → Save diagnostic report. Android 10+ normally saves to Downloads/DiPlay; Android 7.1–9 uses a file picker. If storage or the picker is unavailable, follow the fallback confirmation and use View/Share. 3. Review the TXT and remove passwords and private details. Reports are not uploaded automatically. 4. Attach it to your existing issue: https://github.com/shihabal3amri/DiPlay/issues Or create a new one: https://github.com/shihabal3amri/DiPlay/issues/new/choose Include vehicle/head-unit model, DiLink/Android/firmware, iPhone/iOS, connection type, authentication backend (Local or USB/CH341), relevant settings, reproduction steps, expected/actual result and failure time.",
+    "diagnosticsTitle": "Please send fresh reports from 0.2.16",
+    "diagnosticsText": "1. Update to 0.2.16, reproduce the issue and note the failure time. 2. Open Settings → Diagnostics → Save diagnostic report. Android 10+ normally saves to Downloads/DiPlay; Android 7.1–9 uses a file picker. If storage or the picker is unavailable, follow the fallback confirmation and use View/Share. 3. Review the TXT and remove passwords and private details. Reports are not uploaded automatically. 4. Attach it to your existing issue: https://github.com/shihabal3amri/DiPlay/issues Or create a new one: https://github.com/shihabal3amri/DiPlay/issues/new/choose Include vehicle/head-unit model, DiLink/Android/firmware, iPhone/iOS, connection type, authentication backend (Local or USB/CH341), relevant settings, reproduction steps, expected/actual result and failure time.",
     "newIssue": "Create a new issue"
   },
   "ar": {
@@ -75,14 +75,14 @@
     ],
     "adb": "دليل التثبيت والمساعدة في الاتصال",
     "bssid": "لا تحتاج إلى ADB للاستخدام اليومي. تختلف طريقة تثبيت APK حسب السيارة. لا حاجة لإدخال عنوان MAC يدوياً.",
-    "whats": "الجديد في 0.2.15",
+    "whats": "الجديد في 0.2.16",
     "features": [
-      "دليل إعداد عند التشغيل الأول يتعرف على إصدار DiLink، وفحص يدوي للتحديثات الرسمية من صفحة «حول».",
-      "مظهر فاتح أو داكن أو تلقائي لواجهة DiPlay، مع تحسين التخطيط المدمج الأفقي والعمودي وصفحات مستقلة للغة وحول التطبيق.",
-      "تحسين استعادة مخزن الموسيقى بعد نفاده، وإضافة تلميح لمعدل الإطارات لفك ترميز الفيديو مع مسار بديل للتوافق.",
-      "خيارات Wi-Fi Direct تلقائية لنطاق 5 أو 2.4 غيغاهرتز، وخيار فتح DiPlay عند إعادة اتصال الآيفون المحدد عبر Bluetooth.",
-      "تصحيح أبعاد لوحة العرض عند التدوير، وضبط موضع بطاقة الانعطاف بخطوات 1%، ومواضع اختيارية لمؤشر الملاحة في النافذة الصغيرة. المتابعة التلقائية التجريبية تعيد اتصال CarPlay.",
-      "صوت CarPlay عبر Bluetooth السيارة تجريبي ومعطل افتراضيًا. إصلاح التشغيل عند الإقلاع عبر ADB يتطلب إجراءً صريحًا؛ يعتمد هو وغيره من ميزات السيارة على البرنامج الثابت. اختبر الخيارات أثناء التوقف."
+      "يرسل Siri والمكالمات اللاسلكية صوت الميكروفون على شاشات أندرويد 7.1–9 التي لا تتضمن مُرمِّز Opus، باستخدام مُرمِّز برمجي مدمج.",
+      "إصلاحات لاتصال USB السلكي في تأطير NCM والقراءة على أندرويد 8، مع إعادة المحاولة بقراءات أصغر عندما ترفض الشاشة قراءة USB كبيرة.",
+      "تحدّث استعادة الاتصال اللاسلكي عناوين نقطة الاتصال بعد انتهاء مهلة الاتصال، مع إذن الشبكة المحلية في أندرويد 17 وأمان WPA3 لنقطة اتصال السيارة.",
+      "خيارا «فك ترميز منخفض التأخير» و«إخراج الفيديو المباشر» التجريبيان، وعداد الإطارات في الثانية ضمن التشخيص. جميعها معطلة افتراضيًا.",
+      "بحث مدمج في الإعدادات، وتأكيد قبل أن تتجاهل القائمة السريعة التغييرات غير المطبقة، وخيار إيقاف لإيماءة السحب لأسفل في CarPlay.",
+      "ضبط موضع مؤشر السيارة على لوحة العدادات بخطوات 1%، وموضع مستقل لبطاقة الانعطاف في النافذة الصغيرة. إيقاف بلوتوث السيارة والإضاءة المحيطية تجريبيان ويتطلبان ADB ومعطلان افتراضيًا؛ اختبر الخيارات أثناء التوقف."
     ],
     "compat": "قبل التجربة",
     "compatText": "نسخة تجريبية عامة غير معتمدة من Apple. تستخدم المصادقة هوية ملحق تجريبية مستخرجة من برنامج ثابت منشور، ولا يُضمن استمرار قبولها مستقبلاً. قد يستمر التقطّع أو عدم تطبيق حجم الأيقونات على بعض الشاشات. ابدأ بمعدل 30 إطاراً مع تعطيل HEVC، وجرّب دقة أقل عند الحاجة.",
@@ -97,8 +97,8 @@
     "privacy": "الخصوصية",
     "footer": "مشروع مستقل مبني على xcertplay وبتصميم واجهة من DiAuto. غير تابع لـ Apple أو BYD. كار بلاي وأيقونته ملك لشركة Apple.",
     "supportScope": "يركز هذان المشروعان على سيارات BYD. قد يعملان على علامات أخرى، لكنها غير مدعومة، ولا توجد خطط لإضافة دعم لها أو إصلاح مشكلات التوافق الخاصة بها.",
-    "diagnosticsTitle": "نحتاج تقارير جديدة من 0.2.15",
-    "diagnosticsText": "1. حدّث إلى 0.2.15، أعد إظهار المشكلة وسجّل وقتها. 2. افتح الإعدادات → التشخيص → حفظ تقرير التشخيص. يحفظ أندرويد 10 فأحدث عادةً في Downloads/DiPlay؛ يستخدم أندرويد 7.1–9 منتقي الملفات. إذا تعذر الحفظ أو غاب المنتقي، اتبع رسالة تأكيد الحفظ البديل واستخدم عرض/مشاركة. 3. راجع ملف TXT واحذف كلمات المرور والتفاصيل الخاصة. لا تُرفع التقارير تلقائياً. 4. أرفقه بالمشكلة الحالية: https://github.com/shihabal3amri/DiPlay/issues أو افتح مشكلة جديدة: https://github.com/shihabal3amri/DiPlay/issues/new/choose اذكر طراز السيارة والشاشة، وDiLink/أندرويد/البرنامج الثابت، والآيفون/iOS، ونوع الاتصال، وطريقة المصادقة (Local أو USB/CH341)، والإعدادات ذات الصلة، وخطوات الإعادة، والنتيجة المتوقعة والفعلية، ووقت العطل.",
+    "diagnosticsTitle": "نحتاج تقارير جديدة من 0.2.16",
+    "diagnosticsText": "1. حدّث إلى 0.2.16، أعد إظهار المشكلة وسجّل وقتها. 2. افتح الإعدادات → التشخيص → حفظ تقرير التشخيص. يحفظ أندرويد 10 فأحدث عادةً في Downloads/DiPlay؛ يستخدم أندرويد 7.1–9 منتقي الملفات. إذا تعذر الحفظ أو غاب المنتقي، اتبع رسالة تأكيد الحفظ البديل واستخدم عرض/مشاركة. 3. راجع ملف TXT واحذف كلمات المرور والتفاصيل الخاصة. لا تُرفع التقارير تلقائياً. 4. أرفقه بالمشكلة الحالية: https://github.com/shihabal3amri/DiPlay/issues أو افتح مشكلة جديدة: https://github.com/shihabal3amri/DiPlay/issues/new/choose اذكر طراز السيارة والشاشة، وDiLink/أندرويد/البرنامج الثابت، والآيفون/iOS، ونوع الاتصال، وطريقة المصادقة (Local أو USB/CH341)، والإعدادات ذات الصلة، وخطوات الإعادة، والنتيجة المتوقعة والفعلية، ووقت العطل.",
     "newIssue": "فتح مشكلة جديدة"
   },
   "ru": {
@@ -126,14 +126,14 @@
     ],
     "adb": "Инструкция и помощь с подключением",
     "bssid": "Для повседневной работы ADB не нужен. Способ установки APK зависит от автомобиля. Вводить MAC-адрес вручную не требуется.",
-    "whats": "Новое в 0.2.15",
+    "whats": "Новое в 0.2.16",
     "features": [
-      "Мастер первого запуска определяет версию DiLink; в разделе «О приложении» доступна ручная проверка официальных обновлений.",
-      "Светлая, тёмная и автоматическая тема DiPlay, улучшенные компактные макеты в обеих ориентациях и отдельные страницы языка и сведений о приложении.",
-      "Улучшено восстановление музыкального буфера после опустошения; основному видеодекодеру передаётся частота кадров с совместимым резервным вариантом.",
-      "Выбор Wi-Fi Direct Auto 5 ГГц / Auto 2,4 ГГц и необязательное открытие DiPlay при повторном Bluetooth-подключении выбранного iPhone.",
-      "Исправлены физические размеры поворачиваемого холста, шаг положения карточки поворота уменьшен до 1%, добавлены позиции маркера для малого окна. Экспериментальное автоматическое слежение переподключает CarPlay.",
-      "Экспериментальный звук через Bluetooth автомобиля выключен по умолчанию. Исправление автозапуска через ADB требует явного действия и зависит от прошивки. Проверяйте дополнительные функции на стоянке."
+      "Siri и беспроводные звонки передают звук микрофона на устройствах с Android 7.1–9 без кодировщика Opus — через встроенный программный кодировщик.",
+      "Исправления проводного USB: кадрирование NCM и чтение на Android 8, повтор меньшими блоками, если устройство отклоняет большое чтение по USB.",
+      "Беспроводное восстановление обновляет адреса точки доступа после тайм-аута подключения; добавлены разрешение локальной сети для Android 17 и защита WPA3 для точки доступа автомобиля.",
+      "Экспериментальные «Декодирование с низкой задержкой» и «Прямой вывод видео», а также счётчик FPS в разделе «Диагностика». Всё выключено по умолчанию.",
+      "Встроенный поиск в настройках, подтверждение перед тем, как быстрое меню отбросит непримененные изменения, и вариант «Выключено» для жеста свайпа вниз в CarPlay.",
+      "Положение маркера автомобиля на приборной панели с шагом 1% и отдельное размещение карточки поворота в малом окне. Экспериментальные приостановка Bluetooth автомобиля и атмосферная подсветка требуют ADB и выключены по умолчанию; проверяйте дополнительные функции на стоянке."
     ],
     "compat": "Перед установкой",
     "compatText": "Предварительная версия для открытого тестирования, без сертификации Apple. Используется экспериментальная идентификация аксессуара из общедоступной прошивки; её принятие в будущем не гарантируется. На некоторых устройствах остаются рывки изображения или не применяется размер значков. Начните с 30 кадров/с и выключенного HEVC; при необходимости снизьте разрешение.",
@@ -148,8 +148,8 @@
     "privacy": "Конфиденциальность",
     "footer": "Независимый проект на базе xcertplay с дизайном интерфейса DiAuto. Не связан с Apple или BYD. CarPlay и его значок принадлежат Apple Inc.",
     "supportScope": "Эти проекты ориентированы на автомобили BYD. На других марках они могут работать, но другие марки не поддерживаются; добавление поддержки и исправление несовместимости с ними не планируются.",
-    "diagnosticsTitle": "Нужны свежие отчёты из 0.2.15",
-    "diagnosticsText": "1. Обновитесь до 0.2.15, воспроизведите проблему и запишите время сбоя. 2. Настройки → Диагностика → Сохранить диагностический отчёт. Android 10+ обычно сохраняет в Downloads/DiPlay; Android 7.1–9 открывает выбор файла. Если хранилище или выбор файла недоступны, следуйте подтверждению резервного сохранения и используйте Просмотр/Поделиться. 3. Проверьте TXT, удалите пароли и личные данные. Автоматической отправки нет. 4. Добавьте файл к своей проблеме: https://github.com/shihabal3amri/DiPlay/issues Или создайте новую: https://github.com/shihabal3amri/DiPlay/issues/new/choose Укажите модель автомобиля/устройства, DiLink/Android/прошивку, iPhone/iOS, тип подключения, способ аутентификации (Local или USB/CH341), настройки, шаги, ожидаемый/фактический результат и время сбоя.",
+    "diagnosticsTitle": "Нужны свежие отчёты из 0.2.16",
+    "diagnosticsText": "1. Обновитесь до 0.2.16, воспроизведите проблему и запишите время сбоя. 2. Настройки → Диагностика → Сохранить диагностический отчёт. Android 10+ обычно сохраняет в Downloads/DiPlay; Android 7.1–9 открывает выбор файла. Если хранилище или выбор файла недоступны, следуйте подтверждению резервного сохранения и используйте Просмотр/Поделиться. 3. Проверьте TXT, удалите пароли и личные данные. Автоматической отправки нет. 4. Добавьте файл к своей проблеме: https://github.com/shihabal3amri/DiPlay/issues Или создайте новую: https://github.com/shihabal3amri/DiPlay/issues/new/choose Укажите модель автомобиля/устройства, DiLink/Android/прошивку, iPhone/iOS, тип подключения, способ аутентификации (Local или USB/CH341), настройки, шаги, ожидаемый/фактический результат и время сбоя.",
     "newIssue": "Создать новую задачу"
   },
   "uk": {
@@ -177,14 +177,14 @@
     ],
     "adb": "Довідка зі встановлення й підключення",
     "bssid": "Для щоденного користування ADB не потрібен. Способи встановлення APK залежать від автомобіля. Вводити MAC-адресу вручну не потрібно.",
-    "whats": "Нове у 0.2.15",
+    "whats": "Нове у 0.2.16",
     "features": [
-      "Майстер першого запуску визначає версію DiLink; у розділі «Про застосунок» можна вручну перевірити офіційні оновлення.",
-      "Світла, темна й автоматична тема DiPlay, покращені компактні макети в обох орієнтаціях та окремі сторінки мови й відомостей про застосунок.",
-      "Покращено відновлення музичного буфера після спустошення; основному відеодекодеру передається частота кадрів із сумісним запасним варіантом.",
-      "Вибір Wi-Fi Direct Auto 5 ГГц / Auto 2,4 ГГц та необов’язкове відкриття DiPlay під час повторного Bluetooth-з’єднання вибраного iPhone.",
-      "Виправлено фізичні розміри полотна під час повороту, крок розміщення картки повороту зменшено до 1%, додано позиції маркера для малого вікна. Експериментальне автоматичне стеження перепідключає CarPlay.",
-      "Експериментальний звук через Bluetooth автомобіля вимкнено типово. Виправлення автозапуску через ADB потребує явної дії та залежить від прошивки. Перевіряйте додаткові функції на стоянці."
+      "Siri та бездротові дзвінки передають звук мікрофона на пристроях з Android 7.1–9 без кодувальника Opus — через вбудований програмний кодувальник.",
+      "Виправлення дротового USB: кадрування NCM і читання на Android 8, повтор меншими блоками, якщо пристрій відхиляє велике читання через USB.",
+      "Бездротове відновлення оновлює адреси точки доступу після тайм-ауту з’єднання; додано дозвіл локальної мережі для Android 17 і захист WPA3 для точки доступу автомобіля.",
+      "Експериментальні «Декодування з низькою затримкою» та «Прямий вивід відео», а також лічильник FPS у розділі «Діагностика». Усе вимкнено типово.",
+      "Вбудований пошук у налаштуваннях, підтвердження перед тим, як швидке меню відкине незастосовані зміни, і варіант «Вимкнено» для жесту свайпу вниз у CarPlay.",
+      "Положення маркера автомобіля на панелі приладів із кроком 1% та окреме розміщення картки повороту в малому вікні. Експериментальні призупинення Bluetooth автомобіля й атмосферне підсвічування потребують ADB і вимкнені типово; перевіряйте додаткові функції на стоянці."
     ],
     "compat": "Перш ніж спробувати",
     "compatText": "Це відкрита попередня версія, а не продукт, сертифікований Apple. Автентифікація використовує експериментальну ідентичність аксесуара, відновлену з публічної прошивки; що вона працюватиме й надалі, не гарантовано. На деяких головних пристроях досі бувають ривки або не діє зміна розміру значків. Почніть із 30 кадрів/с і вимкненим HEVC; за потреби спробуйте нижчу роздільність.",
@@ -199,8 +199,8 @@
     "privacy": "Конфіденційність",
     "footer": "Незалежний проєкт на основі xcertplay з дизайном інтерфейсу від DiAuto. Не пов’язаний з Apple чи BYD. CarPlay і його значок належать Apple Inc.",
     "supportScope": "Ці проєкти зосереджені на автомобілях BYD. Вони можуть працювати й з іншими марками, але інші марки не підтримуються, і планів додавати їхню підтримку чи виправляти несумісності з ними немає.",
-    "diagnosticsTitle": "Потрібні свіжі звіти з 0.2.15",
-    "diagnosticsText": "1. Оновіться до 0.2.15, відтворіть проблему й запишіть час збою. 2. Налаштування → Діагностика → Зберегти діагностичний звіт. Android 10+ зазвичай зберігає в Downloads/DiPlay; Android 7.1–9 відкриває вибір файлу. Якщо сховище або вибір файлу недоступні, дотримуйтеся підтвердження резервного збереження й використовуйте Перегляд/Поділитися. 3. Перевірте TXT, вилучіть паролі й приватні дані. Автоматичного надсилання немає. 4. Додайте до своєї проблеми: https://github.com/shihabal3amri/DiPlay/issues Або створіть нову: https://github.com/shihabal3amri/DiPlay/issues/new/choose Укажіть модель авто/пристрою, DiLink/Android/прошивку, iPhone/iOS, тип підключення, спосіб автентифікації (Local або USB/CH341), налаштування, кроки, очікуваний/фактичний результат і час збою.",
+    "diagnosticsTitle": "Потрібні свіжі звіти з 0.2.16",
+    "diagnosticsText": "1. Оновіться до 0.2.16, відтворіть проблему й запишіть час збою. 2. Налаштування → Діагностика → Зберегти діагностичний звіт. Android 10+ зазвичай зберігає в Downloads/DiPlay; Android 7.1–9 відкриває вибір файлу. Якщо сховище або вибір файлу недоступні, дотримуйтеся підтвердження резервного збереження й використовуйте Перегляд/Поділитися. 3. Перевірте TXT, вилучіть паролі й приватні дані. Автоматичного надсилання немає. 4. Додайте до своєї проблеми: https://github.com/shihabal3amri/DiPlay/issues Або створіть нову: https://github.com/shihabal3amri/DiPlay/issues/new/choose Укажіть модель авто/пристрою, DiLink/Android/прошивку, iPhone/iOS, тип підключення, спосіб автентифікації (Local або USB/CH341), налаштування, кроки, очікуваний/фактичний результат і час збою.",
     "newIssue": "Створити нову проблему"
   },
   "es": {
@@ -228,14 +228,14 @@
     ],
     "adb": "Guía de instalación y conexión",
     "bssid": "No necesitas ADB para el uso diario. El método de instalación del APK depende del coche. No hay que introducir direcciones MAC.",
-    "whats": "Novedades de 0.2.15",
+    "whats": "Novedades de 0.2.16",
     "features": [
-      "Guía inicial que detecta la versión de DiLink y búsqueda manual de actualizaciones oficiales en Acerca de.",
-      "Apariencia clara, oscura o automática para DiPlay, mejores diseños compactos horizontales y verticales y páginas de Idioma y Acerca de.",
-      "Mejor recuperación del búfer de música cuando se vacía e indicación de tasa de fotogramas al decodificador principal con alternativa compatible.",
-      "Opciones Wi-Fi Direct Auto 5 GHz / Auto 2,4 GHz y apertura opcional de DiPlay al reconectarse el iPhone seleccionado por Bluetooth.",
-      "Dimensiones corregidas del lienzo giratorio, colocación de la tarjeta de giro en pasos del 1% y posiciones opcionales del marcador en ventana pequeña. El seguimiento automático experimental reconecta CarPlay.",
-      "El audio por Bluetooth del coche es experimental y está desactivado de forma predeterminada. La reparación del inicio mediante ADB requiere una acción explícita y depende del firmware. Prueba las opciones con el coche estacionado."
+      "Siri y las llamadas inalámbricas envían el micrófono en equipos con Android 7.1–9 sin codificador Opus, mediante un codificador por software incluido.",
+      "Correcciones de USB por cable para el entramado NCM y las lecturas en Android 8, con reintentos más pequeños si el equipo rechaza una lectura USB grande.",
+      "La recuperación inalámbrica renueva las direcciones del punto de acceso tras agotarse el tiempo de conexión, con permiso de red local en Android 17 y seguridad WPA3 para el punto de acceso del coche.",
+      "Decodificación de baja latencia y Salida de vídeo directa experimentales, y un contador de FPS en Diagnóstico. Todo está desactivado de forma predeterminada.",
+      "Búsqueda integrada en Ajustes, confirmación antes de que el menú rápido descarte cambios sin aplicar y opción Desactivado para el gesto de deslizar hacia abajo en CarPlay.",
+      "Marcador del coche en el panel de instrumentos con pasos del 1% y colocación propia de la tarjeta de giro en ventana pequeña. La pausa experimental del Bluetooth del coche y la iluminación ambiental requieren ADB y están desactivadas de forma predeterminada; prueba las opciones con el coche estacionado."
     ],
     "compat": "Antes de probar",
     "compatText": "Versión preliminar pública sin certificación de Apple. Usa una identidad de accesorio experimental obtenida de firmware público; no se garantiza su aceptación futura. Algunos equipos aún presentan tirones o no aplican los cambios de tamaño de iconos. Empieza con 30 fps y HEVC desactivado; reduce la resolución si hace falta.",
@@ -250,8 +250,8 @@
     "privacy": "Privacidad",
     "footer": "Proyecto independiente basado en xcertplay, con diseño de interfaz de DiAuto. Sin afiliación a Apple ni BYD. CarPlay y su icono pertenecen a Apple Inc.",
     "supportScope": "Estos proyectos se centran en coches BYD. Pueden funcionar en otras marcas, pero no se ofrece soporte para ellas ni hay planes de añadirlo o corregir incompatibilidades específicas.",
-    "diagnosticsTitle": "Necesitamos informes nuevos de 0.2.15",
-    "diagnosticsText": "1. Actualiza a 0.2.15, reproduce el problema y anota la hora del fallo. 2. Ajustes → Diagnóstico → Guardar informe de diagnóstico. Android 10+ normalmente guarda en Downloads/DiPlay; Android 7.1–9 usa un selector de archivos. Si el almacenamiento o selector no está disponible, sigue la confirmación del guardado alternativo y usa Ver/Compartir. 3. Revisa el TXT y elimina contraseñas y datos privados. No se envía automáticamente. 4. Añádelo a tu incidencia: https://github.com/shihabal3amri/DiPlay/issues O crea otra: https://github.com/shihabal3amri/DiPlay/issues/new/choose Incluye modelo de coche/equipo, DiLink/Android/firmware, iPhone/iOS, tipo de conexión, autenticación (Local o USB/CH341), ajustes, pasos, resultado esperado/real y hora del fallo.",
+    "diagnosticsTitle": "Necesitamos informes nuevos de 0.2.16",
+    "diagnosticsText": "1. Actualiza a 0.2.16, reproduce el problema y anota la hora del fallo. 2. Ajustes → Diagnóstico → Guardar informe de diagnóstico. Android 10+ normalmente guarda en Downloads/DiPlay; Android 7.1–9 usa un selector de archivos. Si el almacenamiento o selector no está disponible, sigue la confirmación del guardado alternativo y usa Ver/Compartir. 3. Revisa el TXT y elimina contraseñas y datos privados. No se envía automáticamente. 4. Añádelo a tu incidencia: https://github.com/shihabal3amri/DiPlay/issues O crea otra: https://github.com/shihabal3amri/DiPlay/issues/new/choose Incluye modelo de coche/equipo, DiLink/Android/firmware, iPhone/iOS, tipo de conexión, autenticación (Local o USB/CH341), ajustes, pasos, resultado esperado/real y hora del fallo.",
     "newIssue": "Crear una incidencia"
   },
   "zh-Hans": {
@@ -279,14 +279,14 @@
     ],
     "adb": "安装与连接指南",
     "bssid": "日常使用不需要 ADB。APK 安装方式取决于车机。无需手动输入 MAC 地址。",
-    "whats": "0.2.15 更新内容",
+    "whats": "0.2.16 更新内容",
     "features": [
-      "首次启动设置向导可识别 DiLink 版本；“关于”页面可手动检查官方更新。",
-      "DiPlay 新增浅色、深色和自动外观，优化横屏／竖屏紧凑布局，并提供独立的语言和关于页面。",
-      "改善音频欠载后的音乐缓冲恢复，为主视频解码器提供帧率提示并保留兼容回退。",
-      "Wi-Fi Direct 新增自动 5 GHz／2.4 GHz 选项，可选择在指定 iPhone 通过蓝牙重连时打开 DiPlay。",
-      "修正旋转画布物理尺寸，转向卡片位置支持 1% 步进，新增可选小窗口导航标记布局。实验性自动跟随会重连 CarPlay。",
-      "车载蓝牙音频为实验性功能，默认关闭。ADB 开机自启动修复须主动执行，效果取决于固件。请停车后测试可选功能。"
+      "在没有 Opus 编码器的 Android 7.1–9 车机上，Siri 和无线通话可通过内置软件编码器发送麦克风声音。",
+      "修复有线 USB 的 NCM 分帧和 Android 8 读取问题；车机拒绝较大的 USB 读取时，会改用较小的读取重试。",
+      "无线连接超时后会刷新热点地址；支持 Android 17 本地网络权限，车机热点新增 WPA3 安全选项。",
+      "新增实验性“低延迟解码”和“直接视频输出”，并在“诊断”中加入 FPS 计数器。均默认关闭。",
+      "设置页内嵌搜索框；快捷菜单放弃未应用的更改前会先确认；CarPlay 下滑手势可设为关闭。",
+      "仪表盘车辆标记位置支持 1% 滑块调节，小窗口转向卡片可单独设置位置。实验性暂停车机蓝牙和氛围灯需要 ADB，默认关闭；请停车后测试可选功能。"
     ],
     "compat": "试用前请了解",
     "compatText": "这是公开预览版，未经 Apple 认证。认证使用从公开固件中提取的实验性配件身份，无法保证未来持续可用。部分车机仍可能出现卡顿或图标大小调整不生效。建议先使用 30 fps 并关闭 HEVC，必要时降低分辨率。",
@@ -301,8 +301,8 @@
     "privacy": "隐私",
     "footer": "基于 xcertplay 的独立项目，界面设计源自 DiAuto。与 Apple 或比亚迪无隶属关系。CarPlay 及其图标归 Apple Inc. 所有。",
     "supportScope": "这些项目专注于比亚迪汽车。它们可能在其他品牌上运行，但其他品牌不在支持范围内，也没有增加支持或修复其品牌特定兼容性问题的计划。",
-    "diagnosticsTitle": "请提供 0.2.15 的新诊断报告",
-    "diagnosticsText": "1. 更新至 0.2.15，复现问题并记录故障时间。2. 打开“设置 → 诊断 → 保存诊断报告”。Android 10 及以上通常保存到 Downloads/DiPlay；Android 7.1–9 使用文件选择器。如存储或选择器不可用，请按备用保存确认提示使用“查看／分享”。3. 检查 TXT，删除密码及隐私信息。报告不会自动上传。4. 附到原有问题：https://github.com/shihabal3amri/DiPlay/issues 或新建问题：https://github.com/shihabal3amri/DiPlay/issues/new/choose 注明车型／车机、DiLink／Android／固件、iPhone／iOS、连接方式、认证方式（Local 或 USB/CH341）、相关设置、复现步骤、预期与实际结果及故障时间。",
+    "diagnosticsTitle": "请提供 0.2.16 的新诊断报告",
+    "diagnosticsText": "1. 更新至 0.2.16，复现问题并记录故障时间。2. 打开“设置 → 诊断 → 保存诊断报告”。Android 10 及以上通常保存到 Downloads/DiPlay；Android 7.1–9 使用文件选择器。如存储或选择器不可用，请按备用保存确认提示使用“查看／分享”。3. 检查 TXT，删除密码及隐私信息。报告不会自动上传。4. 附到原有问题：https://github.com/shihabal3amri/DiPlay/issues 或新建问题：https://github.com/shihabal3amri/DiPlay/issues/new/choose 注明车型／车机、DiLink／Android／固件、iPhone／iOS、连接方式、认证方式（Local 或 USB/CH341）、相关设置、复现步骤、预期与实际结果及故障时间。",
     "newIssue": "新建问题"
   },
   "zh-Hant": {
@@ -344,16 +344,16 @@
     "supportScope": "這些專案專注於比亞迪汽車。它們可能在其他品牌上運作，但其他品牌不在支援範圍內，也沒有增加支援或修正其品牌特定相容性問題的計畫。",
     "newIssue": "建立新問題",
     "requires": "請安裝在車機上，而非 iPhone。需要 Android 7.1+（API 25）；7.1–8.1 為新增支援，仍需實車驗證。支援 USB，以及透過車機熱點、Wi-Fi Direct 或現有 Wi-Fi／同一區域網路連線。相容性取決於車機、韌體和 iOS。",
-    "whats": "0.2.15 更新內容",
+    "whats": "0.2.16 更新內容",
     "features": [
-      "首次啟動設定精靈可辨識 DiLink 版本；「關於」頁面可手動檢查官方更新。",
-      "DiPlay 新增淺色、深色和自動外觀，改善橫向／直向精簡版面，並提供獨立的語言和關於頁面。",
-      "改善音訊緩衝耗盡後的音樂恢復，為主要影片解碼器提供影格率提示並保留相容的備援方式。",
-      "Wi-Fi Direct 新增自動 5 GHz／2.4 GHz 選項，可選擇在指定 iPhone 透過藍牙重新連線時開啟 DiPlay。",
-      "修正旋轉畫布的實體尺寸，轉彎卡片位置支援 1% 步進，新增可選的小視窗導航標記版面。實驗性自動跟隨會重新連線 CarPlay。",
-      "車用藍牙音訊為實驗性功能，預設關閉。ADB 開機自動啟動修復須主動執行，效果取決於韌體。請停車後測試選用功能。"
+      "在沒有 Opus 編碼器的 Android 7.1–9 車機上，Siri 和無線通話可透過內建軟體編碼器傳送麥克風聲音。",
+      "修正有線 USB 的 NCM 分框和 Android 8 讀取問題；車機拒絕較大的 USB 讀取時，會改用較小的讀取重試。",
+      "無線連線逾時後會重新整理熱點位址；支援 Android 17 區域網路權限，車機熱點新增 WPA3 安全性選項。",
+      "新增實驗性「低延遲解碼」和「直接影片輸出」，並在「診斷」中加入 FPS 計數器。皆預設關閉。",
+      "設定頁內嵌搜尋框；快捷選單捨棄未套用的變更前會先確認；CarPlay 向下滑動手勢可設為關閉。",
+      "儀表板車輛標記位置支援 1% 滑桿調整，小視窗轉彎卡片可單獨設定位置。實驗性暫停車機藍牙和氛圍燈需要 ADB，預設關閉；請停車後測試選用功能。"
     ],
-    "diagnosticsTitle": "請提供 0.2.15 的新診斷報告",
-    "diagnosticsText": "1. 更新至 0.2.15，重現問題並記錄故障時間。2. 開啟「設定 → 診斷 → 儲存診斷報告」。Android 10 及以上通常儲存到 Downloads/DiPlay；Android 7.1–9 使用檔案選擇器。若儲存空間或選擇器無法使用，請依備援儲存確認提示使用「檢視／分享」。3. 檢查 TXT，移除密碼與私人資訊。報告不會自動上傳。4. 附到原有問題：https://github.com/shihabal3amri/DiPlay/issues 或建立新問題：https://github.com/shihabal3amri/DiPlay/issues/new/choose 註明車型／車機、DiLink／Android／韌體、iPhone／iOS、連線方式、驗證方式（Local 或 USB/CH341）、相關設定、重現步驟、預期與實際結果及故障時間。"
+    "diagnosticsTitle": "請提供 0.2.16 的新診斷報告",
+    "diagnosticsText": "1. 更新至 0.2.16，重現問題並記錄故障時間。2. 開啟「設定 → 診斷 → 儲存診斷報告」。Android 10 及以上通常儲存到 Downloads/DiPlay；Android 7.1–9 使用檔案選擇器。若儲存空間或選擇器無法使用，請依備援儲存確認提示使用「檢視／分享」。3. 檢查 TXT，移除密碼與私人資訊。報告不會自動上傳。4. 附到原有問題：https://github.com/shihabal3amri/DiPlay/issues 或建立新問題：https://github.com/shihabal3amri/DiPlay/issues/new/choose 註明車型／車機、DiLink／Android／韌體、iPhone／iOS、連線方式、驗證方式（Local 或 USB/CH341）、相關設定、重現步驟、預期與實際結果及故障時間。"
   }
 }

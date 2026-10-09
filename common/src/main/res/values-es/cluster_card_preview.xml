@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="card_preview_title">Vista previa de la tarjeta de giro</string>
+    <string name="card_preview_note">Posición proporcional en el cuadro completo. El borde real de la ventana pequeña depende del coche.</string>
+    <string name="card_preview_full">Pantalla completa</string>
+    <string name="card_preview_small">Ventana pequeña</string>
+</resources>

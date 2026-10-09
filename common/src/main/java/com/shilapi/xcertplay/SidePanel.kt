@@ -18,4 +18,28 @@ object SidePanelSettings {
 
     fun setEnabled(context: Context, enabled: Boolean) =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean(KEY_ENABLED, enabled).apply()
+
+    /** CarPlay's share of the screen beside the panel, in sixths ([CarPlayViewAreas.SIDE_PANEL_SIXTHS]). */
+    fun sixths(context: Context): Int =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getInt(KEY_SIXTHS, CarPlayViewAreas.DEFAULT_SIDE_PANEL_SIXTHS)
+            .takeIf { it in CarPlayViewAreas.SIDE_PANEL_SIXTHS } ?: CarPlayViewAreas.DEFAULT_SIDE_PANEL_SIXTHS
+
+    fun setSixths(context: Context, sixths: Int) =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putInt(KEY_SIXTHS, sixths).apply()
+
+    private const val KEY_SIXTHS = "carplay_sixths"
+}
+
+/** What a touch that starts on the side panel's pull tab turns out to be. */
+internal enum class SidePanelTabIntent { UNDECIDED, OPEN_PANEL, CARPLAY }
+
+/**
+ * A touch on the pull tab drags the panel out only when it first moves towards the inside of the screen by
+ * at least [slop], and more than along the edge. Movement along the edge or back towards it belongs to CarPlay
+ * under the tab (for example a list scrolled near the edge), and so does a tap or a long press.
+ */
+internal fun sidePanelTabIntent(inward: Float, along: Float, slop: Float): SidePanelTabIntent = when {
+    inward >= slop && inward >= along -> SidePanelTabIntent.OPEN_PANEL
+    along >= slop || -inward >= slop -> SidePanelTabIntent.CARPLAY
+    else -> SidePanelTabIntent.UNDECIDED
 }

@@ -1,4 +1,4 @@
 <resources>
     <string name="settings_force_full_settings">強制使用完整設定頁佈局</string>
-    <string name="settings_force_full_settings_hint">僅在橫向使用含分類側欄的完整設定頁佈局；直向恢復自動適配。小視窗可能需要捲動。不影響主畫面或 CarPlay。</string>
+    <string name="settings_force_full_settings_hint">僅在橫向使用含分類側欄的完整設定頁佈局，直向恢復自動適配。不影響主畫面或 CarPlay。</string>
 </resources>

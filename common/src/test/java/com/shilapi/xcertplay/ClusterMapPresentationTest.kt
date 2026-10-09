@@ -21,7 +21,7 @@ class ClusterMapPresentationTest {
     @Test fun repeatedActiveNotificationsDoNotRestartTheFade() = withMeasuredPresentation { presentation ->
         presentation.setStreamActive(true)
         val video: android.view.View = org.robolectric.util.ReflectionHelpers.getField(presentation, "videoView")
-        val label: android.widget.TextView = org.robolectric.util.ReflectionHelpers.getField(presentation, "waitingLabel")
+        val label: android.view.View = org.robolectric.util.ReflectionHelpers.getField(presentation, "waitingLabel")
         video.alpha = 0.6f
         label.alpha = 0.4f
         presentation.setStreamActive(true)
@@ -32,7 +32,7 @@ class ClusterMapPresentationTest {
     @Test fun reversingTheFadeKeepsTheCurrentOpacityAndWaitingLabelVisible() = withMeasuredPresentation { presentation ->
         presentation.setStreamActive(true)
         val video: android.view.View = org.robolectric.util.ReflectionHelpers.getField(presentation, "videoView")
-        val label: android.widget.TextView = org.robolectric.util.ReflectionHelpers.getField(presentation, "waitingLabel")
+        val label: android.view.View = org.robolectric.util.ReflectionHelpers.getField(presentation, "waitingLabel")
         video.alpha = 0.6f
         label.alpha = 0.4f
         presentation.setStreamActive(false)
@@ -45,7 +45,7 @@ class ClusterMapPresentationTest {
 
     @Test fun aNewPresentationStartsWithVisibleWaitingTextAndHiddenVideo() = withPresentation { presentation ->
         val video: android.view.View = org.robolectric.util.ReflectionHelpers.getField(presentation, "videoView")
-        val label: android.widget.TextView = org.robolectric.util.ReflectionHelpers.getField(presentation, "waitingLabel")
+        val label: android.view.View = org.robolectric.util.ReflectionHelpers.getField(presentation, "waitingLabel")
         assertEquals(if (video is android.view.SurfaceView) 1f else 0f, video.alpha, 0.001f)
         assertEquals(1f, label.alpha, 0.001f)
         assertEquals(android.view.View.VISIBLE, label.visibility)
@@ -58,8 +58,8 @@ class ClusterMapPresentationTest {
         DiLink51ClusterLayout.saveContrast(context, DiLink51ClusterLayout.Contrast.DARK)
         try {
             withPresentation(DiLink51ClusterLayout.FULL, DiLink51ClusterLayout.Theme.MAP) { presentation ->
-                val label: android.widget.TextView = org.robolectric.util.ReflectionHelpers.getField(presentation, "waitingLabel")
-                assertEquals(android.graphics.Color.WHITE, label.currentTextColor)
+                val label: android.view.View = org.robolectric.util.ReflectionHelpers.getField(presentation, "waitingLabel")
+                assertEquals(android.graphics.Color.WHITE, spinner(label).indeterminateTintList?.defaultColor)
             }
         } finally {
             org.robolectric.shadows.ShadowBuild.setFingerprint(original)
@@ -70,11 +70,12 @@ class ClusterMapPresentationTest {
     @Test @Config(sdk = [28, 29])
     fun legacySurfaceUsesAnOpaquePlaceholderWithoutChangingSurfaceAlpha() = withPresentation { presentation ->
         val video: android.view.View = org.robolectric.util.ReflectionHelpers.getField(presentation, "videoView")
-        val label: android.widget.TextView = org.robolectric.util.ReflectionHelpers.getField(presentation, "waitingLabel")
+        val label: android.view.View = org.robolectric.util.ReflectionHelpers.getField(presentation, "waitingLabel")
         assertTrue(video is android.view.SurfaceView)
         val background = label.background as android.graphics.drawable.ColorDrawable
         assertEquals(255, android.graphics.Color.alpha(background.color))
-        assertEquals(android.graphics.Color.rgb(233, 238, 246), background.color)
+        // DiPlay's dark theme (the default) gives a black placeholder.
+        assertEquals(android.graphics.Color.BLACK, background.color)
         assertEquals(1f, video.alpha, 0.001f)
         presentation.setStreamActive(true)
         assertEquals(1f, video.alpha, 0.001f)
@@ -84,6 +85,23 @@ class ClusterMapPresentationTest {
         assertEquals(0.4f, label.alpha, 0.001f)
         assertEquals(android.view.View.VISIBLE, label.visibility)
     }
+
+    @Test fun legacyPlaceholderFollowsALightAppTheme() {
+        val appearance = AirPlayPersistence.loadAppAppearance(context)
+        AirPlayPersistence.saveAppAppearance(context, AppAppearance.LIGHT)
+        try {
+            withPresentation { presentation ->
+                val label: android.view.View = org.robolectric.util.ReflectionHelpers.getField(presentation, "waitingLabel")
+                assertEquals(android.graphics.Color.rgb(233, 238, 246), (label.background as android.graphics.drawable.ColorDrawable).color)
+                assertEquals(android.graphics.Color.DKGRAY, spinner(label).indeterminateTintList?.defaultColor)
+            }
+        } finally {
+            AirPlayPersistence.saveAppAppearance(context, appearance)
+        }
+    }
+
+    private fun spinner(view: android.view.View): android.widget.ProgressBar =
+        (view as android.view.ViewGroup).getChildAt(0) as android.widget.ProgressBar
 
     private fun withMeasuredPresentation(block: (ClusterMapPresentation) -> Unit) {
         val original = android.os.Build.FINGERPRINT

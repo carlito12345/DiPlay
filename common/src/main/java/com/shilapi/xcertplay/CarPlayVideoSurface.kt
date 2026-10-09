@@ -7,10 +7,17 @@ internal enum class CarPlayVideoSurfaceMode { TEXTURE, SURFACE }
 
 /**
  * Decide from the attached window, not the declared manifest flag or vehicle model. Smooth video also
- * needs a SurfaceView: only the compositor honours the frame timestamps it releases with.
+ * needs a SurfaceView: only the compositor honours the frame timestamps it releases with. Direct video
+ * output (a setting) picks one too: frames go straight to the compositor instead of through the app's
+ * own drawing, which can save about a refresh.
  */
-internal fun carPlayVideoSurfaceMode(hardwareAccelerated: Boolean, smoothVideo: Boolean = false): CarPlayVideoSurfaceMode =
-    if (hardwareAccelerated && !smoothVideo) CarPlayVideoSurfaceMode.TEXTURE else CarPlayVideoSurfaceMode.SURFACE
+internal fun carPlayVideoSurfaceMode(
+    hardwareAccelerated: Boolean,
+    smoothVideo: Boolean = false,
+    directVideoOutput: Boolean = false,
+): CarPlayVideoSurfaceMode =
+    if (hardwareAccelerated && !smoothVideo && !directVideoOutput) CarPlayVideoSurfaceMode.TEXTURE
+    else CarPlayVideoSurfaceMode.SURFACE
 
 /** Integer compositor bounds retain overscan when a CarPlay view area crops the canvas. */
 internal data class CarPlaySurfaceBounds(val left: Int, val top: Int, val width: Int, val height: Int) {

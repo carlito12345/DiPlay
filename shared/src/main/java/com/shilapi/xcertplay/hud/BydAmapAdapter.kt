@@ -70,10 +70,15 @@ internal object BydDiLink3GuidanceText {
         return if (minutes < 60) "$minutes min" else "${minutes / 60} h ${minutes % 60} min"
     }
 
+    /**
+     * AMap's own ETA_TEXT form, "预计HH:mm到达". The simple-navigation cluster drops the first and last
+     * two characters, so a bare "11:49" showed as ":4" (#384), and the adapter's parseTime only sends the
+     * arrival hour and minute to the instrument CAN when both words are present.
+     */
     fun arrival(nowMillis: Long, seconds: Int, zone: java.util.TimeZone, use24Hour: Boolean): String? {
         if (seconds < 0) return null
         val format = java.text.SimpleDateFormat(if (use24Hour) "HH:mm" else "h:mm", java.util.Locale.US)
         format.timeZone = zone
-        return format.format(java.util.Date(nowMillis + seconds * 1000L))
+        return "预计${format.format(java.util.Date(nowMillis + seconds * 1000L))}到达"
     }
 }

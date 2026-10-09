@@ -1,4 +1,4 @@
 <resources>
     <string name="settings_force_full_settings">Всегда полный макет настроек</string>
-    <string name="settings_force_full_settings_hint">Полный макет настроек с боковой панелью только в альбомной ориентации. В портретной используется автоматический макет. В небольших окнах может потребоваться прокрутка. Не меняет главный экран или CarPlay.</string>
+    <string name="settings_force_full_settings_hint">Полный макет настроек с боковой панелью только в альбомной ориентации, в портретной используется автоматический макет. Не меняет главный экран или CarPlay.</string>
 </resources>

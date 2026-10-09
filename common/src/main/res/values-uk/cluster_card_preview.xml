@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="card_preview_title">Попередній перегляд картки повороту</string>
+    <string name="card_preview_note">Положення показано відносно всієї панелі. Межа малого вікна залежить від авто.</string>
+    <string name="card_preview_full">Повний екран</string>
+    <string name="card_preview_small">Мале вікно</string>
+</resources>

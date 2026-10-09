@@ -18,6 +18,8 @@ import com.shilapi.xcertplay.transport.Iap2IdentificationConfig
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.atomic.AtomicBoolean
 import org.junit.After
+import android.app.AlertDialog
+import android.os.Looper
 import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
@@ -29,6 +31,7 @@ import org.mockito.Mockito.`when`
 import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
+import org.robolectric.shadows.ShadowAlertDialog
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.LooperMode
 import org.robolectric.android.util.concurrent.PausedExecutorService
@@ -67,6 +70,48 @@ class CarPlayHostSettingsTest {
         controllers.close()
     }
 
+    @Test fun disabledGesturePersistsAndDoesNotOpenTheMenu() {
+        AirPlayPersistence.saveSettingsGestureFingers(activity, 0)
+        invoke("loadPersistedSettings")
+        assertEquals(0, AirPlayPersistence.loadSettingsGestureFingers(activity))
+        for (fingers in 2..4) {
+            gesture(fingers)
+            assertFalse(field("menuOpen") as Boolean)
+            assertFalse(field("gestureSequenceActive") as Boolean)
+        }
+        invoke("openSettingsMenu")
+        val button = views(menu()).filterIsInstance<Button>()
+            .first { it.text == activity.getString(R.string.settings_gesture_disabled_action) }
+        button.performClick()
+        assertEquals(2, field("gestureFingerCount"))
+        invoke("cancelSettingsEdits")
+        assertEquals(0, field("gestureFingerCount"))
+    }
+
+    @Test fun menuStaysCenteredAndUsesAvailableWidthAcrossWindowSizes() {
+        invoke("openSettingsMenu")
+        val overlay = menu() as ViewGroup
+        val panel = overlay.getChildAt(0)
+        val density = activity.resources.displayMetrics.density
+        for (widthDp in listOf(320, 600, 1024, 1600)) {
+            val width = (widthDp * density + 0.5f).toInt()
+            val height = (480 * density + 0.5f).toInt()
+            repeat(3) {
+                overlay.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+                    View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY))
+                overlay.layout(0, 0, width, height)
+            }
+            val expected = (minOf(720, widthDp - 32) * density + 0.5f).toInt()
+            assertEquals(expected, panel.width)
+            assertTrue(kotlin.math.abs(panel.left - (width - panel.right)) <= 1)
+            val title = views(panel).filterIsInstance<TextView>()
+                .first { it.text == activity.getString(R.string.carplay_settings) }
+            val close = views(panel).filterIsInstance<Button>().first { it.text == "X" }
+            val titleBounds = android.graphics.Rect(0, 0, title.width, title.height)
+            (panel as ViewGroup).offsetDescendantRectToMyCoords(title, titleBounds)
+            assertTrue(kotlin.math.abs(titleBounds.exactCenterY() - (close.top + close.height / 2f)) <= 1f)
+        }
+    }
     @Test fun configuredFingerCountsOpenTheMountedMenuWithoutLeavingCarPlay() {
         assertEquals(3, AirPlayPersistence.loadSettingsGestureFingers(activity))
         for (fingers in 2..4) {
@@ -117,6 +162,10 @@ class CarPlayHostSettingsTest {
         val original = AirPlayPersistence.loadDisplayScalePercent(activity)
         resolutionSlider().progress = 0
         fullSettingsButton().performClick()
+        // A staged edit is pending, so leaving asks first and nothing has been thrown away yet.
+        assertTrue(field("menuOpen") as Boolean)
+        assertNull(shadowOf(activity).nextStartedActivity)
+        discardPendingEdits()
         assertFalse(field("menuOpen") as Boolean)
         assertNull(field("settingsBaseline"))
         assertEquals(original, field("displayScalePercent"))
@@ -126,6 +175,49 @@ class CarPlayHostSettingsTest {
         val intent = shadowOf(activity).nextStartedActivity
         assertEquals(DiPlayActivity::class.java.name, intent.component!!.className)
         assertEquals("settings", intent.getStringExtra("page"))
+    }
+
+    @Test fun leavingWithoutAPendingEditDoesNotAsk() {
+        attachController()
+        invoke("openSettingsMenu")
+        fullSettingsButton().performClick()
+        assertNull(ShadowAlertDialog.getLatestAlertDialog())
+        assertFalse(field("menuOpen") as Boolean)
+        assertEquals(DiPlayActivity::class.java.name,
+            shadowOf(activity).nextStartedActivity.component!!.className)
+    }
+
+    @Test fun theQuestionAloneChangesNothing() {
+        attachController()
+        invoke("openSettingsMenu")
+        val original = AirPlayPersistence.loadDisplayScalePercent(activity)
+        resolutionSlider().progress = 0
+        val staged = field("displayScalePercent")
+        assertNotEquals(original, staged)
+
+        fullSettingsButton().performClick()
+        assertNotNull(ShadowAlertDialog.getLatestAlertDialog())
+        assertTrue(field("menuOpen") as Boolean)
+        assertNotNull(field("settingsBaseline"))
+        assertEquals(staged, field("displayScalePercent"))
+        assertEquals(original, AirPlayPersistence.loadDisplayScalePercent(activity))
+        assertNull(shadowOf(activity).nextStartedActivity)
+    }
+
+    @Test fun answeringSaveKeepsTheStagedEditInsteadOfDiscardingIt() {
+        attachController()
+        invoke("openSettingsMenu")
+        resolutionSlider().progress = 0
+        val staged = field("displayScalePercent")
+
+        fullSettingsButton().performClick()
+        val dialog = ShadowAlertDialog.getLatestAlertDialog()
+            ?: error("leaving the menu with a pending edit should ask before discarding")
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+
+        assertFalse(field("menuOpen") as Boolean)
+        assertEquals(staged, AirPlayPersistence.loadDisplayScalePercent(activity))
     }
 
     @Test fun returningFromFullSettingsReloadsSavedConnectionPreferences() {
@@ -513,6 +605,14 @@ class CarPlayHostSettingsTest {
         .first { it.text == activity.getString(R.string.settings_gesture_fingers, field("gestureFingerCount")) }
     private fun fullSettingsButton() = views(menu()).filterIsInstance<Button>()
         .first { it.text == activity.getString(R.string.app_name) + " " + activity.getString(R.string.settings) }
+    /** Answers the "Discard your changes?" dialog that an exit with staged edits now shows. */
+    private fun discardPendingEdits() {
+        val dialog = ShadowAlertDialog.getLatestAlertDialog()
+            ?: error("leaving the menu with a pending edit should ask before discarding")
+        dialog.getButton(AlertDialog.BUTTON_NEGATIVE).performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+    }
+
     private fun views(view: View): Sequence<View> = sequence {
         yield(view)
         if (view is ViewGroup) for (index in 0 until view.childCount) yieldAll(views(view.getChildAt(index)))

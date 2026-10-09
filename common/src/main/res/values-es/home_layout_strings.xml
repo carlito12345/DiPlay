@@ -1,4 +1,4 @@
 <resources>
     <string name="settings_force_full_settings">Forzar el diseño completo de Ajustes</string>
-    <string name="settings_force_full_settings_hint">Usa el diseño completo de Ajustes con barra lateral solo en horizontal. En vertical se adapta automáticamente. Las ventanas pequeñas pueden requerir desplazamiento. No cambia el inicio ni CarPlay.</string>
+    <string name="settings_force_full_settings_hint">Usa el diseño completo de Ajustes con barra lateral solo en horizontal, con adaptación automática en vertical. No cambia el inicio ni CarPlay.</string>
 </resources>

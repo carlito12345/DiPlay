@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="ambient_light_threshold_title">عتبة الإضاءة المحيطة</string>
+    <string name="ambient_light_threshold_title">عتبة السطوع</string>
     <string name="ambient_light_threshold_summary">%1$d lux</string>
     <string name="ambient_light_threshold_value">عتبة التبديل (lux)</string>
-    <string name="ambient_light_threshold_hint">الوضع التلقائي: أقل من العتبة يختار الليل، وعند العتبة أو فوقها يختار النهار. يجب أن تبقى القراءة على الجانب الجديد طوال التأخير المحدد. أدخل عددًا صحيحًا من 1 إلى 200000.</string>
+    <string name="ambient_light_threshold_hint">أقل من العتبة (lux) يختار الليل، وعند العتبة أو فوقها يختار النهار. يجب أن تبقى القراءة على الجانب الجديد طوال التأخير المحدد. أدخل عددًا صحيحًا من 1 إلى 200000.</string>
     <string name="ambient_light_threshold_error">أدخل عددًا صحيحًا من 1 إلى 200000.</string>
     <string name="ambient_light_reset_defaults">استعادة القيمة الافتراضية</string>
 </resources>

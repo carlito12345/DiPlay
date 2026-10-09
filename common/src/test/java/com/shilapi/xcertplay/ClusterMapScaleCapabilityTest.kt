@@ -87,8 +87,9 @@ class ClusterMapScaleCapabilityTest {
         AirPlayPersistence.saveClusterSafeAreaRect(activity, SafeAreaRect(300, 100, 1500, 620))
 
         val actual = cluster(100)
-        val expected = CarPlayClusterDisplay.config(1280, 480, 100, 1, -1,
-            CarPlayClusterDisplay.Content.INSTRUMENTS)
+        // The saved steps migrate onto the percent grid around the sliders' centre (50 / 45).
+        val expected = CarPlayClusterDisplay.config(1280, 480, 100,
+            content = CarPlayClusterDisplay.Content.INSTRUMENTS, markerXPercent = 60, markerYPercent = 35)
         assertEquals(expected, actual)
         assertEquals(1280.0 / 480.0, MapMirrors.streamAspect, 0.0001)
         assertTrue(activity.javaClass.getDeclaredField("clusterStreamOnDisplay")
@@ -101,6 +102,20 @@ class ClusterMapScaleCapabilityTest {
         AirPlayPersistence.saveClusterSafeAreaRect(activity, rect)
         assertEquals(DiLink4ClusterDisplay.streamConfig(CarPlayClusterDisplay.Content.MAP,
             safeAreaRect = rect), cluster(100))
+    }
+
+    @Test fun measuredDilink4ProjectionFollowsTheMarkerSliders() {
+        projectionDisplay(1920, 720)
+        val centred = cluster(100)
+        assertEquals(DiLink4ClusterDisplay.streamConfig(CarPlayClusterDisplay.Content.MAP,
+            markerXPercent = 50, markerYPercent = 45), centred)
+
+        AirPlayPersistence.saveClusterMarkerXPercent(activity, 70)
+        AirPlayPersistence.saveClusterMarkerYPercent(activity, 30)
+        val moved = cluster(100)
+        assertEquals(DiLink4ClusterDisplay.streamConfig(CarPlayClusterDisplay.Content.MAP,
+            markerXPercent = 70, markerYPercent = 30), moved)
+        assertNotEquals(centred.safeArea, moved.safeArea)
     }
 
     @Test fun theNewPresetRoundTripsThroughTheSettingsPreferences() {

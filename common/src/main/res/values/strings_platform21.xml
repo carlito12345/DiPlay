@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="platform21_cluster_mode">Platform 21 cluster task (experimental)</string>
+    <string name="platform21_cluster_description">For the 2023 Tang DM-i controller-21 adaptation. Off by default. Uses only the verified projection display, keeps a centred half-width map and does not change stock cluster modes or disable the stock map. Requires previously authorized local ADB. Applying this setting reconnects CarPlay. This upstream integration needs a parked-car test.</string>
+</resources>

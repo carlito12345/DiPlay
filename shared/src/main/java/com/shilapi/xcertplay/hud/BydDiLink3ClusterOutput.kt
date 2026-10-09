@@ -101,8 +101,10 @@ internal object BydDiLink3ClusterOutput {
     }
 
     internal fun adbClusterRouteSelected(context: Context): Boolean =
-        context.getSharedPreferences("xcertplay_airplay", Context.MODE_PRIVATE)
-            .getBoolean("adb_cluster_activity_enabled", false)
+        context.getSharedPreferences("xcertplay_airplay", Context.MODE_PRIVATE).let {
+            it.getBoolean("adb_cluster_activity_enabled", false) ||
+                it.getBoolean("platform21_cluster_enabled", false)
+        }
 
     private fun prefs(context: Context) = context.getSharedPreferences("diplay_dilink3_cluster", Context.MODE_PRIVATE)
 }

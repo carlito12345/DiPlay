@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="platform21_cluster_mode">Ventana del cuadro de la plataforma 21 (experimental)</string>
+    <string name="platform21_cluster_description">Adaptación para el Tang DM-i 2023 con controlador 21. Desactivada por defecto. Usa solo la pantalla de proyección verificada y muestra un mapa centrado de media anchura sin cambiar los modos del cuadro ni desactivar el mapa original. Requiere ADB local autorizado. Aplicar este ajuste vuelve a conectar CarPlay. Esta integración necesita una prueba con el vehículo estacionado.</string>
+</resources>

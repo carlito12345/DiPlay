@@ -35,7 +35,7 @@
     <string name="marker_centre_default">居中 · 默认</string>
     <string name="hotspot_mode_auto_desc">自动准备无线连接。使用车机自带热点时，请选择“车机热点”。</string>
     <string name="hotspot_hint_auto">保持车机 Wi-Fi、蓝牙和手机 Wi-Fi 开启。</string>
-    <string name="hotspot_mode_manual_desc">使用车机自带热点。若车机支持，请在车机设置中选择 5 GHz。</string>
+    <string name="hotspot_mode_manual_desc">使用车载热点连接无线 CarPlay。无需在 iPhone 上手动加入热点；DiPlay 会通过蓝牙发送热点信息。如有 5 GHz，请在车机设置中选择。</string>
     <string name="hotspot_mode_p2p_desc">备选方案。需要打开车机 Wi-Fi 开关；2.4 GHz 连接可能会卡顿。</string>
     <string name="hotspot_details_off">热点已关闭 · 请在车机设置中开启。</string>
     <string name="hotspot_details_saved">详情已保存 · 连接前请确认车载热点已开启。</string>
@@ -401,6 +401,7 @@
     <string name="use_software_hevc_decoder">使用 HEVC 软件解码器</string>
     <string name="use_usage_content_type_routing_instead_of_stream_type">使用 usage / content-type 路由代替流类型</string>
     <string name="use_your_last_connection_type_and_selected_iphone">使用上次的连接方式和已选 iPhone。</string>
+    <string name="vpn_authorization_unavailable">此车机无法打开 VPN 授权界面。请返回 DiPlay 检查连接权限，或使用无线连接。</string>
     <string name="vpn_consent_was_denied">VPN 授权被拒绝</string>
     <string name="waiting_for_iphone_over_usb">正在等待 USB 连接的 iPhone</string>
     <string name="waiting_for_mfi_coprocessor">正在等待 MFi 协处理器</string>
@@ -602,10 +603,10 @@
     <string name="adb_cluster_routing">正在通过ADB启动仪表地图…</string>
     <string name="adb_cluster_routed">仪表窗口已移动，等待 iPhone 地图</string>
     <string name="adb_cluster_route_failed">仪表启动失败，请导出诊断。</string>
-    <string name="open_diplay_settings_hint">CarPlay 中用 %1$d 指下滑打开 DiPlay 设置。</string>
+    <string name="open_diplay_settings_hint">在 CarPlay 中用 %1$d 指下滑，以打开快捷菜单。</string>
     <string name="carplay_controls">CarPlay 操作</string>
-    <string name="settings_gesture_fingers">打开设置 · %1$d 指下滑（点按切换）</string>
-    <string name="settings_gesture_fingers_label">打开设置 · 下滑手指数</string>
+    <string name="settings_gesture_fingers">快捷菜单 · %1$d 指下滑（点按切换）</string>
+    <string name="settings_gesture_fingers_label">快捷菜单 · 下滑手指数</string>
     <string name="settings_gesture_fingers_option">%1$d 指</string>
     <string name="settings_gesture_fingers_hint">选择车机没有占用的手指数。比亚迪的三指下滑是空调面板，建议改用 2 指。</string>
     <string name="auto_car_hotspot_title">自动开启热点</string>
@@ -737,7 +738,7 @@
     <string name="wheel_siri_key_description">在 CarPlay 显示于屏幕时，用你选择的方向盘按键打开 Siri。车辆自身保留的按键只能配合方向盘按键服务使用，该服务在 CarPlay 处于后台时也可使用。未连接 CarPlay 或通话时，该按键保留车辆原有功能。</string>
     <string name="wheel_key_role_back">返回</string>
     <string name="wheel_key_service_label">DiPlay 方向盘按键</string>
-    <string name="wheel_key_service_description">让 DiPlay 使用在设置中选择的方向盘按键缩放仪表盘上的 CarPlay 地图，并在 CarPlay 屏幕上移动选择。它只接收按键，不读取屏幕内容。</string>
+    <string name="wheel_key_service_description">可选方向盘按键过滤，用于导航播报音量、仪表地图缩放、CarPlay摇杆及通话控制。不读取屏幕内容。</string>
     <string name="cluster_song_on_change">仅在切歌时显示</string>
     <string name="cluster_song_on_change_description">新歌曲在仪表盘上显示 5 秒，然后清空卡片。暂停和继续播放不会再次显示。</string>
     <string name="carplay_calls_on_dashboard">仪表盘显示 CarPlay 通话</string>
@@ -796,6 +797,12 @@
     <string name="call_voice_filter_description">削减 CarPlay 通话音频的低音。这可能改变人声的音色。下次连接 CarPlay 时生效。</string>
     <string name="smooth_video">流畅视频（实验性）</string>
     <string name="smooth_video_description">按 iPhone 为每一帧标记的时间加上一段短延迟显示 CarPlay 主画面，而不是解码后立即显示。延迟会自动调整，让大多数帧能及时解码；仍未按时准备好的帧会立即显示。滚动可能更均匀，但触控响应会变慢。画面调整不适用。会重新连接 CarPlay。</string>
+    <string name="settings_direct_video_output">直接视频输出（实验性）</string>
+    <string name="settings_direct_video_output_description">将 CarPlay 画面直接交给车机的系统合成器，而不是在 DiPlay 窗口内绘制。可将延迟降低约一次屏幕刷新。画面调整不适用。会重新连接 CarPlay。</string>
+    <string name="settings_low_latency_decoder">低延迟解码（实验性）</string>
+    <string name="settings_low_latency_decoder_description">要求高通视频解码器在每一帧解码后立即输出，而不是保留后续帧，并由专用线程立即显示每个已解码的帧，无需等待下一帧到达。可将延迟降低数十毫秒。如果画面出现花屏或卡住，请关闭。下次连接时生效。</string>
+    <string name="settings_fps_counter">FPS 计数器</string>
+    <string name="settings_fps_counter_description">在 CarPlay 右上角显示计数器：每秒显示的帧数（50 及以上为绿色，30 及以上为黄色，低于 30 为红色）、每秒从 iPhone 接收的帧数以及解码时间。画面静止时帧数很少，因为 iPhone 不发送帧。</string>
     <string name="car_button_in_carplay">CarPlay 中的车辆按钮</string>
     <string name="car_button_icon">图标</string>
     <string name="car_button_icon_custom">自定义图标</string>
@@ -805,6 +812,41 @@
     <string name="this_head_unit_has_no_image_picker">此车机没有图片选择器。</string>
     <!-- carlito | GD vehicle probe integration. -->
     <string name="vehicle_probe">车辅属性扫描</string>
+
+    <!-- Optional BYD ambient lighting. -->
+    <string name="settings_ambient_title">氛围灯（实验性）</string>
+    <string name="settings_ambient_configuration">氛围灯配置</string>
+    <string name="settings_ambient_static">固定</string>
+    <string name="settings_ambient_energy">随声音强弱</string>
+    <string name="settings_ambient_beat">随节拍</string>
+    <string name="settings_ambient_tempo">随BPM（估算）</string>
+    <string name="settings_ambient_bass">鼓点优先</string>
+    <string name="settings_ambient_smart">智能跟随</string>
+    <string name="settings_ambient_slow">舒缓</string>
+    <string name="settings_ambient_standard">标准</string>
+    <string name="settings_ambient_fast">快速</string>
+    <string name="settings_ambient_enabled">已开启</string>
+    <string name="settings_ambient_disabled">已关闭</string>
+    <string name="settings_ambient_summary">%1$s · %2$s · %3$s · %4$d色 · 亮度%5$d</string>
+    <string name="settings_ambient_enable">开启氛围灯控制</string>
+    <string name="settings_ambient_enable_description">关闭后尝试恢复接管前的原车颜色、亮度和区域。需要已有的ADB授权。</string>
+    <string name="settings_ambient_music">音乐律动</string>
+    <string name="settings_ambient_music_description">播放时随音乐变化；关闭律动则使用固定颜色和亮度。两种模式在暂停或断开后均降到全部区域最低档，保存后生效。</string>
+    <string name="settings_ambient_color_mode">颜色变化方式</string>
+    <string name="settings_ambient_speed">亮度过渡速度</string>
+    <string name="settings_ambient_palette">原车颜色编号（多选）</string>
+    <string name="settings_ambient_palette_summary">颜色 · 已选%1$d种</string>
+    <string name="settings_ambient_select_all">全选</string>
+    <string name="settings_ambient_select_one">至少选择一种颜色</string>
+    <string name="settings_ambient_brightness">亮度上限</string>
+    <string name="settings_ambient_minimum">0（最低亮度）</string>
+    <string name="settings_ambient_area">区域</string>
+    <string name="settings_ambient_front">前排</string>
+    <string name="settings_ambient_rear">后排</string>
+    <string name="settings_ambient_all">全部</string>
+    <string name="settings_ambient_parked_notice">请在车辆停放时配置。本功能针对部分BYD氛围灯接口，不能保证所有车型和固件兼容。亮度0代表原车最低档，不代表断电关闭。</string>
+    <string name="settings_ambient_checking">正在检查…</string>
+    <string name="settings_ambient_unavailable">只读检查失败：已有ADB授权或支持的氛围灯接口不可用，灯光设置未保存。请在停车时单独配置访问权限，本功能不会启用ADB或申请授权。</string>
     <string name="settings_interface_size">界面大小</string>
     <string name="settings_interface_size_auto">自动</string>
     <string name="settings_interface_size_hint">DiPlay 自身界面中文字和控件的大小。自动模式会在大尺寸低密度屏幕上放大它们。不影响 CarPlay。</string>
@@ -844,4 +886,22 @@
     <string name="setup_badge_adb">需要网络 ADB</string>
     <string name="setup_done_title">准备就绪</string>
     <string name="setup_done_description">现在连接你的 iPhone。之后可在设置中再次打开本向导。</string>
+    <string name="settings_discard_pending_title">要放弃更改吗？</string>
+    <string name="settings_discard_pending_message">你刚更改的分辨率、帧率、连接以及其余设置尚未保存。“保存并重新连接”会应用它们。</string>
+    <string name="settings_discard_pending_confirm">放弃</string>
+    <string name="settings_gesture_disabled">关闭</string>
+    <string name="settings_gesture_disabled_hint">已关闭向下滑动打开快捷菜单的手势。</string>
+    <string name="settings_gesture_disabled_action">快捷菜单 · 关闭下滑（点按切换）</string>
+    <string name="bt_suspend_delay">蓝牙暂停延时</string>
+    <string name="bt_suspend_delay_option">连接 %1$d 秒后</string>
+    <string name="bt_suspend_during_carplay">CarPlay 期间暂停车机蓝牙 · 需要 ADB</string>
+    <string name="bt_suspend_during_carplay_description">手机与车机保持免提连接时，来电会同时弹出车机蓝牙电话和 CarPlay 电话。开启后：CarPlay 连接期间通过 ADB 暂停车机蓝牙，来电只在 CarPlay 响应；蓝牙关闭期间，CarPlay 通话改走中控喇叭和车机麦克风，不再走电话免提。CarPlay 结束或下次无线连接握手前会自动恢复蓝牙。配对不受影响。更改在下次连接时生效。</string>
+    <string name="cluster_small_window_card_theme">小屏转向卡主题</string>
+    <string name="cluster_small_window_card_theme_follow">跟随转向卡主题</string>
+    <string name="cluster_small_window_card_size">小屏转向卡 · 大小</string>
+    <string name="cluster_small_window_card_horizontal">小屏转向卡 · 左右</string>
+    <string name="cluster_small_window_card_vertical">小屏转向卡 · 上下</string>
+    <string name="cluster_small_window_card_opacity">小屏转向卡 · 透明度</string>
+    <string name="turn_card_theme_day">始终白天</string>
+    <string name="turn_card_theme_night">始终夜间</string>
 </resources>

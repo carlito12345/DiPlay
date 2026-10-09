@@ -1,6 +1,8 @@
 package com.shilapi.xcertplay.media
 
 import android.Manifest
+import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothManager
 import android.media.AudioManager
 import android.media.AudioRecord
 import android.media.MediaRecorder
@@ -48,6 +50,8 @@ class TelephonyMicrophoneTest {
     @Before fun setUp() {
         ConfigurableAudioEffect.resetStatus()
         shadowOf(context).grantPermissions(Manifest.permission.RECORD_AUDIO, Manifest.permission.MODIFY_AUDIO_SETTINGS)
+        context.getSharedPreferences("diplay_bt_suspend", 0).edit().clear().commit()
+        shadowOf(context.getSystemService(BluetoothManager::class.java).adapter).setState(BluetoothAdapter.STATE_ON)
         manager = context.getSystemService(AudioManager::class.java)
         sink = AndroidMediaSink(context = context)
         for (type in listOf(AudioEffect.EFFECT_TYPE_AEC, AudioEffect.EFFECT_TYPE_NS)) {
@@ -91,6 +95,27 @@ class TelephonyMicrophoneTest {
         assertEquals(AudioManager.MODE_RINGTONE, manager.mode)
         assertTrue(ShadowAudioEffect.getAudioEffects().isEmpty())
         assertEquals(AudioRecord.STATE_UNINITIALIZED, record.state)
+    }
+
+    @Test fun aCallWhileCarBluetoothIsOffUsesTheCabinMicrophone() {
+        context.getSharedPreferences("diplay_bt_suspend", 0).edit().putBoolean("restore_initially_enabled", true).commit()
+        shadowOf(context.getSystemService(BluetoothManager::class.java).adapter).setState(BluetoothAdapter.STATE_OFF)
+        manager.mode = AudioManager.MODE_NORMAL
+        sink.onMicrophoneStarted(telephony, config("telephony"))
+        val record = awaitCapture()
+        assertEquals(AudioManager.MODE_NORMAL, manager.mode)
+        assertEquals(MediaRecorder.AudioSource.MIC, record.audioSource)
+        assertTrue(ShadowAudioEffect.getAudioEffects().isEmpty())
+        sink.onMicrophoneStopped(telephony)
+        assertEquals(AudioManager.MODE_NORMAL, manager.mode)
+    }
+
+    @Test fun anUnverifiedPauseFlagDoesNotSwitchCallAudioRouting() {
+        context.getSharedPreferences("diplay_bt_suspend", 0).edit()
+            .putBoolean("suspended_by_us", true).putBoolean("restore_initially_enabled", true).commit()
+        sink.onMicrophoneStarted(telephony, config("telephony"))
+        assertEquals(MediaRecorder.AudioSource.VOICE_COMMUNICATION, awaitCapture().audioSource)
+        assertEquals(AudioManager.MODE_IN_COMMUNICATION, manager.mode)
     }
 
     @Test fun speechRecognitionDoesNotChangeModeOrEnableTelephonyEffects() {
@@ -178,6 +203,67 @@ class TelephonyMicrophoneTest {
         assertTrue(ShadowAudioEffect.getAudioEffects().isEmpty())
     }
 
+    @Test fun missingOpusEncodersFailBeforeCaptureAndAllowAnotherStartAttempt() {
+        val diagnostics = CopyOnWriteArrayList<String>()
+        var encoderAttempts = 0
+        val uplink = MicrophoneUplink(config("telephony").copy(codec = AudioCodecKind.OPUS),
+            onDiagnostic = diagnostics::add,
+            opusEncoderFactory = { encoderAttempts++; null })
+        try {
+            assertFalse(uplink.start())
+            assertFalse(uplink.start())
+            assertEquals(2, encoderAttempts)
+            assertNull(recorder.get())
+            assertTrue(ShadowAudioEffect.getAudioEffects().isEmpty())
+            assertEquals(2, diagnostics.count { it.contains("stage=ENCODER") })
+        } finally { uplink.close() }
+    }
+
+    @Test fun softwareEncoderDiagnosticsCannotPreventMicrophoneCapture() {
+        val uplink = MicrophoneUplink(config("speechrecognition").copy(codec = AudioCodecKind.OPUS),
+            onDiagnostic = { throw IllegalStateException("report unavailable") },
+            opusEncoderFactory = { SoftwareOpusEncoder(it) })
+        try {
+            assertTrue(uplink.start())
+            assertEquals(AudioRecord.RECORDSTATE_RECORDING, awaitCapture().recordingState)
+        } finally { uplink.close() }
+        assertEquals(AudioRecord.STATE_UNINITIALIZED, recorder.get()!!.state)
+    }
+
+    @Test
+    @Config(shadows = [FailingRestoreAudioManager::class])
+    fun failedModeRestoreStillReportsTheReadableCurrentMode() {
+        verifyRestoreFailure(failGetter = false)
+    }
+
+    @Test
+    @Config(shadows = [FailingRestoreAudioManager::class])
+    fun failedModeRestoreAndModeGetterCannotEscapeMicrophoneTeardown() {
+        verifyRestoreFailure(failGetter = true)
+    }
+
+    private fun verifyRestoreFailure(failGetter: Boolean) {
+        sink.close()
+        val diagnostics = CopyOnWriteArrayList<String>()
+        sink = AndroidMediaSink(context = context, onAudioDiagnostic = diagnostics::add)
+        manager.mode = AudioManager.MODE_RINGTONE
+        sink.onMicrophoneStarted(telephony, config("telephony"))
+        val record = awaitCapture()
+        FailingRestoreAudioManager.failSetter = true
+        FailingRestoreAudioManager.failGetter = failGetter
+        try {
+            sink.onMicrophoneStopped(telephony)
+            assertEquals(AudioRecord.STATE_UNINITIALIZED, record.state)
+            assertTrue(ShadowAudioEffect.getAudioEffects().isEmpty())
+            val failure = diagnostics.single { it.startsWith("Audio: mode restore failed") }
+            val expectedMode = if (failGetter) "unknown" else AudioManager.MODE_IN_COMMUNICATION.toString()
+            assertTrue(failure, failure.contains("requested=${AudioManager.MODE_RINGTONE} now=$expectedMode"))
+            assertTrue(failure, failure.contains("error=SecurityException"))
+            sink.onMicrophoneStopped(telephony)
+            assertEquals(1, diagnostics.count { it.startsWith("Audio: mode restore failed") })
+        } finally { FailingRestoreAudioManager.resetFailures() }
+    }
+
     @Test fun unavailableEffectsDoNotPreventRecording() {
         ShadowAudioEffect.reset()
         sink.onMicrophoneStarted(telephony, config("telephony"))
@@ -244,7 +330,8 @@ class TelephonyMicrophoneTest {
             assertEquals(false, fake.platformAecEnabledAtProcessing)
             val effects = ShadowAudioEffect.getAudioEffects()
             assertFalse(effects.single { it is AcousticEchoCanceler }.enabled)
-            assertTrue(effects.single { it.javaClass.simpleName == "NoiseSuppressor" }.enabled)
+            // Speex denoises after cancellation, so platform NS must not alter the signal first.
+            assertFalse(effects.single { it.javaClass.simpleName == "NoiseSuppressor" }.enabled)
             effects.forEach { assertEquals(recorder.get()!!.audioSessionId, Shadow.extract<ShadowAudioEffect>(it).audioSession) }
         } finally { uplink.close() }
         assertTrue(fake.closed)
@@ -434,6 +521,26 @@ class TelephonyMicrophoneTest {
         @Implementation
         override fun setMode(mode: Int) {
             throw SecurityException("Mode change denied")
+        }
+    }
+
+    @Implements(AudioManager::class)
+    class FailingRestoreAudioManager : ShadowAudioManager() {
+        @Implementation override fun setMode(mode: Int) {
+            if (failSetter) throw SecurityException("Mode restore denied")
+            super.setMode(mode)
+        }
+        @Implementation override fun getMode(): Int {
+            if (failGetter) throw IllegalStateException("Mode unavailable")
+            return super.getMode()
+        }
+        companion object {
+            var failSetter = false
+            var failGetter = false
+            @Resetter @JvmStatic fun resetFailures() {
+                failSetter = false
+                failGetter = false
+            }
         }
     }
 }

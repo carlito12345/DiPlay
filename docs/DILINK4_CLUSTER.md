@@ -91,3 +91,8 @@ these PRs. Diagnostic exports include the firmware and installed receiver versio
 certificate and permission metadata needed to review a new profile. Do not add
 one based only on package presence. Fork application-ID/build changes and deleted
 HUD diagnostic tooling from #187 are intentionally excluded.
+
+The separately selected [platform-21 task route](PLATFORM21_CLUSTER.md) reuses this
+Activity and calibration stream, with a smaller transparent default map region,
+AMS placement checks and frame-confirmed retry completion. It does not acquire
+this DiLink 4 stock-map hold. The new upstream wiring still needs vehicle testing.

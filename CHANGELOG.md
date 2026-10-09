@@ -1,3 +1,15 @@
+# DiPlay 0.2.16 — 2026-10-09
+
+- Send the Siri and call microphone on Android 7.1–9 head units without an Opus encoder through a bundled software Opus encoder, and offer Opus only when it can be encoded; accepted on a BOS Mini A1 (Android 9) with an iPhone 12 on iOS 27 (#468, #483).
+- Fix wired NCM receive framing and Android 8 USB reads, and retry rejected large USB reads at smaller sizes (#478, #495).
+- Refresh hotspot addresses after a first wireless timeout, request Android 17 local-network permission, handle missing VPN authorization screens and add WPA3 car-hotspot security (#474, #465, #517, #501).
+- Add experimental Low-latency decoding and Direct video output, an FPS counter, a hardware low-latency Smooth video decoder and bounded video backlog recovery (#496, #456, #347).
+- Add inline Settings search, confirm before the quick menu discards staged changes, allow turning off the swipe-down gesture, and refine Settings layout and reconnect prompts (#450, #500, #487, #486, #482, #490, #491).
+- Place the dashboard car marker with 1% sliders, give the small-window turn card its own placement, theme the cluster waiting screen, show the full DiLink 3 arrival time, declare initial appearance and add side-panel resizing (#494, #493, #481, #458, #346, #480).
+- Add experimental, off-by-default car Bluetooth pause, music-following ambient lighting, navigation wheel volume and a Platform 21 instrument route; refine call echo alignment, buffered-audio pacing and audio diagnostics (#307, #345, #344, #348, #421, #484, #499).
+
+See [0.2.16 release notes](docs/RELEASE-NOTES-0.2.16.md) for contribution links and limits, and [validation](docs/VALIDATION.md) for checks. Full-release vehicle acceptance is not claimed.
+
 # DiPlay 0.2.15 — 2026-10-08
 
 - Lower the minimum to Android 7.1/API 25 with compatibility fallbacks; Android 7.1–8.1 vehicle validation remains pending (#407).

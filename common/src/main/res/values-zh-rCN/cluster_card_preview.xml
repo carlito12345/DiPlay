@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="card_preview_title">转向卡位置预览</string>
+    <string name="card_preview_note">按整块仪表面板比例示意位置；实际小屏边界因车型而异。</string>
+    <string name="card_preview_full">全屏</string>
+    <string name="card_preview_small">小屏</string>
+</resources>

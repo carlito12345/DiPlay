@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="ambient_light_threshold_title">Ambient light threshold</string>
+    <string name="ambient_light_threshold_title">Brightness threshold</string>
     <string name="ambient_light_threshold_summary">%1$d lux</string>
     <string name="ambient_light_threshold_value">Switching threshold (lux)</string>
-    <string name="ambient_light_threshold_hint">Automatic mode: below the threshold selects night; at or above it selects day. Readings must stay on the new side for the selected delay. Enter an integer from 1 to 200000.</string>
+    <string name="ambient_light_threshold_hint">Below the threshold (lux) selects night; at or above it selects day. Readings must stay on the new side for the selected delay. Enter an integer from 1 to 200000.</string>
     <string name="ambient_light_threshold_error">Enter an integer from 1 to 200000.</string>
     <string name="ambient_light_reset_defaults">Reset default</string>
 </resources>

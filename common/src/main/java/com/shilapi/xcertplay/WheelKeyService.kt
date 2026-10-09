@@ -20,6 +20,7 @@ import com.shilapi.xcertplay.airplay.AirPlayKnobState
 import com.shilapi.xcertplay.airplay.CarPlayMediaButton
 import com.shilapi.xcertplay.glance.CarPlayGlance
 import com.shilapi.xcertplay.host.R
+import com.shilapi.xcertplay.media.NavigationPlayback
 import com.shilapi.xcertplay.hud.BydNavigationOutputs
 import com.shilapi.xcertplay.hud.BydOutputSettings
 
@@ -40,6 +41,7 @@ import com.shilapi.xcertplay.hud.BydOutputSettings
  */
 class WheelKeyService : AccessibilityService() {
     private val keys = WheelZoomKeys()
+    private val navigationKeys = NavigationWheelKeyPolicy()
     private val joystick = WheelJoystick()
     private val siriKey = WheelSiriKey()
     private val handler = Handler(Looper.getMainLooper())
@@ -53,6 +55,7 @@ class WheelKeyService : AccessibilityService() {
         if (keys.timeOut() && eligibleRoute() != null) announce(zoomOn = false)
     }
     // This read is nonblocking: no ADB, input-device query or network lock in the periodic poll.
+    internal var navigationPlayback: () -> com.shilapi.xcertplay.media.NavigationPlaybackSnapshot = { NavigationPlayback.snapshot() }
     internal var mapRoute: () -> Any? = { CarPlayBackgroundSession.snapshot()?.controller?.dashboardMapRoute() }
     internal var session: () -> Any? = { CarPlayBackgroundSession.snapshot()?.controller?.activeAirPlaySessionToken() }
     internal var knob: (AirPlayKnobState) -> Boolean = { CarPlayBackgroundSession.snapshot()?.controller?.sendKnob(it) == true }
@@ -85,6 +88,7 @@ class WheelKeyService : AccessibilityService() {
 
     override fun onServiceConnected() {
         running = this
+        NavigationWheelSettings.recordAuthorization(this)
         CarPlayCallKeys.install(this)
         refreshEligibility()
         handler.removeCallbacks(pollEligibility)
@@ -129,6 +133,7 @@ class WheelKeyService : AccessibilityService() {
             rearmTimedMode()
             return true
         }
+        if (navigationKeys.owns(event.keyCode, event.deviceId, event.downTime)) return navigationKey(event)
         if (CarPlayCallKeys.onKey(this, event.keyCode, down)) return true
         if (BydOutputSettings.carPlayCallControls(this) &&
             CarPlayMediaButton.opensSiriWhileCarPlay(event.keyCode) && session() != null) {
@@ -173,7 +178,7 @@ class WheelKeyService : AccessibilityService() {
             },
         )
         when (action) {
-            WheelZoomKeys.Action.PASS -> return false
+            WheelZoomKeys.Action.PASS -> return navigationKey(event)
             WheelZoomKeys.Action.CONSUME -> Unit
             WheelZoomKeys.Action.MODE_ON -> announce(zoomOn = true)
             WheelZoomKeys.Action.MODE_OFF -> announce(zoomOn = false)
@@ -182,6 +187,39 @@ class WheelKeyService : AccessibilityService() {
         }
         rearmTimedMode()
         return true
+    }
+
+    private fun navigationKey(event: KeyEvent): Boolean = navigationKeys.onKey(
+        event.action, event.keyCode, event.deviceId, event.downTime, event.repeatCount,
+        eligible = navigationStream() != null,
+    ) { delta -> adjustNavigation(delta) }
+
+    private fun navigationStream(): Int? {
+        if (!NavigationWheelSettings.enabled(this) || running !== this || inCall(this) || session() == null) return null
+        val playback = navigationPlayback()
+        if (!playback.active || playback.priorityVoiceActive) return null
+        // Usage routing and a rejected legacy route cannot identify a safe volume stream.
+        return playback.legacyStreamType?.takeIf { it in 1..20 && it != AudioManager.STREAM_MUSIC }
+    }
+
+    private fun adjustNavigation(delta: Int): Boolean {
+        val stream = navigationStream() ?: return false
+        val audio = getSystemService(Context.AUDIO_SERVICE) as? AudioManager ?: return false
+        return try {
+            val minimum = navigationWheelMinimum(stream, android.os.Build.VERSION.SDK_INT) {
+                if (android.os.Build.VERSION.SDK_INT >= 28) audio.getStreamMinVolume(it) else 0
+            }
+            val current = audio.getStreamVolume(stream)
+            val maximum = audio.getStreamMaxVolume(stream)
+            val target = navigationWheelTarget(current, minimum, maximum, delta) ?: return false
+            if (navigationStream() != stream) return false
+            audio.setStreamVolume(stream, target, AudioManager.FLAG_SHOW_UI)
+            // Failed/unsupported writes leave the initial press with the head unit.
+            audio.getStreamVolume(stream) == target
+        } catch (error: Exception) {
+            Log.w(TAG, "navigation volume unavailable for stream $stream", error)
+            false
+        }
     }
 
     private fun eligibleRoute(): Any? = if (WheelZoomSettings.enabled(this)) mapRoute() else null
@@ -352,6 +390,7 @@ class WheelKeyService : AccessibilityService() {
             val allowed = applyServiceSettings(context, adb::shell) {
                 mayAsk || wanted(context)
             }
+            if (allowed && mayAsk) NavigationWheelSettings.recordAuthorization(context)
             if (allowed) Log.i(TAG, "wheel key service allowed over adb")
             if (allowed) access else LocalAdb.Access.UNREACHABLE
         }
@@ -398,7 +437,7 @@ class WheelKeyService : AccessibilityService() {
          * only through it, and without it BYD's window manager opens its own phone app instead.
          */
         internal fun wanted(context: Context): Boolean = WheelZoomSettings.anyEnabled(context) ||
-            BydOutputSettings.carPlayCallControls(context)
+            BydOutputSettings.carPlayCallControls(context) || NavigationWheelSettings.restoreAllowed(context)
 
         /**
          * Android takes the service off the allowed list when the app is force-stopped (BYD's system does

@@ -67,3 +67,18 @@ Each locale MUST use its existing form: `(تجريبي)`, `(experimental)`, `(э
 
 Overview holds the connection status, links to the categories, quick settings, About and Language.
 Do not add a new setting to Overview. Add it to its category. Then promote it to quick settings only if drivers change it often.
+
+## Settings layout
+
+Spacing, size and shape in the Settings screen MUST come from one place.
+
+1. A gap between blocks MUST use a named dp constant, such as `SETTINGS_BLOCK_GAP_DP`.
+   A new literal gap value MUST NOT be added.
+2. A size MUST NOT be a pixel constant (`*_PX`). Use dp, and clamp to the available window width.
+   Test a menu or panel on a narrow window and on a high-density screen.
+3. Controls in one row MUST have the same height.
+   Corner radius MUST follow the control height. A new button MUST NOT set its own radius.
+4. Every `SettingsCategory` except Overview MUST have a link on Overview.
+   `AdaptiveSettingsUiTest.overviewLinksToEveryOtherCategory` checks this.
+5. A layout change MUST include compact and full screenshots with a large font scale.
+   Add an Arabic (right-to-left) screenshot when the change touches row alignment.

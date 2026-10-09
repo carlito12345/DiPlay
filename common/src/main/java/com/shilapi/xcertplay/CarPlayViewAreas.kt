@@ -24,7 +24,8 @@ class CarPlayViewAreas private constructor(
     /** A full screen the canvas holds: its size and whether the screen is portrait then. */
     data class Screen(val width: Int, val height: Int, val portrait: Boolean)
 
-    private data class Slot(val kind: Kind, val portrait: Boolean)
+    /** One area's purpose; [sixths] is CarPlay's share of its screen beside the side panel, in sixths. */
+    private data class Slot(val kind: Kind, val portrait: Boolean, val sixths: Int = 6)
 
     /** The area CarPlay uses now; shared by the session's host and its settings. */
     @Volatile var current: Int = initial
@@ -53,8 +54,16 @@ class CarPlayViewAreas private constructor(
         return index(Kind.FULL_SCREEN, portrait, edge)
     }
 
-    /** The area beside DiPlay's side panel on the current (or given) screen, or null without one. */
-    fun sidePanel(portrait: Boolean = slots[current].portrait): Int? = index(Kind.SIDE_PANEL, portrait, areas[current].dockEdge)
+    /**
+     * The area beside DiPlay's side panel on the current (or given) screen with CarPlay's share in [sixths]
+     * (another share when this session has no such area), or null without a side panel.
+     */
+    fun sidePanel(portrait: Boolean = slots[current].portrait, sixths: Int = DEFAULT_SIDE_PANEL_SIXTHS): Int? {
+        val edge = areas[current].dockEdge
+        return areas.indices.firstOrNull {
+            slots[it].kind == Kind.SIDE_PANEL && slots[it].portrait == portrait && areas[it].dockEdge == edge && slots[it].sixths == sixths
+        } ?: index(Kind.SIDE_PANEL, portrait, edge)
+    }
 
     /**
      * The area to lay out the canvas by: beside the side panel CarPlay draws in part of its screen, so the
@@ -93,6 +102,13 @@ class CarPlayViewAreas private constructor(
     companion object {
         /** Further than this (as an aspect ratio) from DiPlay's window, a split-screen area does not fit it. */
         private const val MAX_ASPECT_MISMATCH = 1.25
+
+        /** CarPlay's share of the screen beside the side panel, in sixths: two thirds, half, one third. */
+        val SIDE_PANEL_SIXTHS = listOf(4, 3, 2)
+        const val DEFAULT_SIDE_PANEL_SIXTHS = 4
+
+        /** The declared share nearest to CarPlay's [fraction] of the screen (0..1). */
+        fun nearestSidePanelSixths(fraction: Double): Int = SIDE_PANEL_SIXTHS.minByOrNull { abs(it / 6.0 - fraction) }!!
 
         /** One screen the size of the stream (no turning); see the general [build]. */
         fun build(
@@ -145,15 +161,15 @@ class CarPlayViewAreas private constructor(
                     slots += Slot(Kind.SPLIT_SCREEN, screen.portrait)
                 }
             }
-            if (sidePanel) for (screen in screens) {
-                // CarPlay keeps two thirds: the driver's side of a landscape screen (the panel on the
-                // passenger's side) or the top of a portrait one (the panel at the bottom).
-                val width = if (screen.portrait) screen.width else (screen.width * 2 / 3) and 1.inv()
-                val height = if (screen.portrait) (screen.height * 2 / 3) and 1.inv() else screen.height
+            if (sidePanel) for (screen in screens) for (sixths in SIDE_PANEL_SIXTHS) {
+                // CarPlay keeps two thirds, half or one third: the driver's side of a landscape screen (the panel
+                // on the passenger's side) or the top of a portrait one (the panel at the bottom).
+                val width = if (screen.portrait) screen.width else (screen.width * sixths / 6) and 1.inv()
+                val height = if (screen.portrait) (screen.height * sixths / 6) and 1.inv() else screen.height
                 val originX = if (rightHandDrive) screen.width - width else 0
                 for (edge in edges) {
                     areas += AirPlayViewArea(width, height, originX = originX, dockEdge = edge)
-                    slots += Slot(Kind.SIDE_PANEL, screen.portrait)
+                    slots += Slot(Kind.SIDE_PANEL, screen.portrait, sixths)
                 }
             }
             val initial = areas.indices.firstOrNull {

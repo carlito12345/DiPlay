@@ -29,7 +29,7 @@
     <string name="settings_reconnect_pending">已保存。部分更改将在 CarPlay 重新连接后生效。</string>
     <string name="settings_reconnect_now">立即重新连接</string>
     <string name="settings_byd_navigation_unavailable">此车机不支持比亚迪仪表盘和 HUD 导航提示。</string>
-    <string name="settings_search_hint">设置名称，例如帧率</string>
+    <string name="settings_search_hint">搜索设置</string>
     <string name="settings_search_empty">没有匹配的设置。请换个词试试。</string>
     <string name="settings_ready_wireless">无线 CarPlay 将连接到 %1$s。</string>
     <string name="settings_ready_usb">使用 USB 数据线连接 iPhone 以启动 CarPlay。</string>

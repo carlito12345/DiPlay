@@ -35,7 +35,7 @@
     <string name="marker_centre_default">Centre · default</string>
     <string name="hotspot_mode_auto_desc">Prepares a Wi-Fi Direct connection automatically. For the car hotspot, select Built-in car hotspot.</string>
     <string name="hotspot_hint_auto">Keep the car Wi-Fi, Bluetooth and iPhone Wi-Fi on.</string>
-    <string name="hotspot_mode_manual_desc">Use the car’s own hotspot. Select 5 GHz in car settings if available.</string>
+    <string name="hotspot_mode_manual_desc">Use the car’s hotspot for wireless CarPlay. You do not need to join it manually on your iPhone; DiPlay sends the hotspot details over Bluetooth. Select 5 GHz in car settings if available.</string>
     <string name="hotspot_mode_p2p_desc">Alternative setup. Requires the car’s Wi-Fi switch on; a 2.4 GHz connection may stutter.</string>
     <string name="hotspot_details_off">Hotspot is off · Turn it on in car settings.</string>
     <string name="hotspot_details_saved">Details saved · Check that the car hotspot is on before connecting.</string>
@@ -379,7 +379,7 @@
     <string name="settings_advanced_caution_title">Change with care</string>
     <string name="settings_advanced_caution_description">These features can depend on vehicle firmware, ADB access, or experimental CarPlay behavior. Everyday settings are organized in the categories above.</string>
     <string name="settings_search">Search</string>
-    <string name="settings_search_hint">Setting name, for example frame rate</string>
+    <string name="settings_search_hint">Search settings</string>
     <string name="settings_search_empty">No setting matches. Try another word.</string>
     <string name="settings_open_category">Open %1$s settings</string>
     <string name="settings_ready_connected">CarPlay is active. Changes that need a reconnect will say so.</string>
@@ -439,6 +439,7 @@
     <string name="use_software_hevc_decoder">Use software HEVC decoder</string>
     <string name="use_usage_content_type_routing_instead_of_stream_type">Use usage / content-type routing instead of stream type</string>
     <string name="use_your_last_connection_type_and_selected_iphone">Use your last connection type and selected iPhone.</string>
+    <string name="vpn_authorization_unavailable">This head unit cannot open VPN authorization. Return to DiPlay to check connection permissions or use wireless.</string>
     <string name="vpn_consent_was_denied">VPN consent was denied</string>
     <string name="waiting_for_iphone_over_usb">Waiting for iPhone over USB</string>
     <string name="waiting_for_mfi_coprocessor">Waiting for MFi coprocessor</string>
@@ -639,10 +640,10 @@
     <string name="adb_cluster_routing">Launching cluster map through ADB…</string>
     <string name="adb_cluster_routed">Cluster task routed; waiting for iPhone map</string>
     <string name="adb_cluster_route_failed">Cluster launch failed; export diagnostics.</string>
-    <string name="open_diplay_settings_hint">In CarPlay, swipe down with %1$d fingers to open DiPlay settings.</string>
+    <string name="open_diplay_settings_hint">In CarPlay, swipe down with %1$d fingers to open the quick menu.</string>
     <string name="carplay_controls">CarPlay controls</string>
-    <string name="settings_gesture_fingers">Open settings · swipe with %1$d fingers (tap to change)</string>
-    <string name="settings_gesture_fingers_label">Open settings · swipe-down fingers</string>
+    <string name="settings_gesture_fingers">Quick menu · swipe with %1$d fingers (tap to change)</string>
+    <string name="settings_gesture_fingers_label">Quick menu · swipe-down fingers</string>
     <string name="settings_gesture_fingers_option">%1$d fingers</string>
     <string name="settings_gesture_fingers_hint">Pick a finger count your head unit does not already use. BYD takes three-finger swipe-down for its air-conditioning panel.</string>
     <string name="auto_car_hotspot_title">Automatically turn on the car hotspot</string>
@@ -774,7 +775,7 @@
     <string name="wheel_siri_key_description">Opens Siri with a wheel key you choose while CarPlay is on the screen. A key that the car keeps for itself works only with the wheel key service, which also works when CarPlay is in the background. Without CarPlay, or during a call, the key keeps the car\'s own action.</string>
     <string name="wheel_key_role_back">back</string>
     <string name="wheel_key_service_label">DiPlay wheel keys</string>
-    <string name="wheel_key_service_description">Lets DiPlay use the steering-wheel keys chosen in its settings to zoom the CarPlay map on the dashboard and to move around CarPlay\'s screen. It only receives key presses and does not read the screen.</string>
+    <string name="wheel_key_service_description">Optional wheel key filtering for navigation volume during spoken guidance, dashboard map zoom, CarPlay joystick and call controls. No screen content is read.</string>
     <string name="cluster_song_on_change">Song only when it changes</string>
     <string name="cluster_song_on_change_description">A new song shows on the dashboard for 5 seconds, then the card is emptied. Pause and play alone do not show it again.</string>
     <string name="carplay_calls_on_dashboard">CarPlay calls on the dashboard</string>
@@ -833,6 +834,16 @@
     <string name="call_voice_filter_description">Cuts bass from CarPlay call audio. This may change how voices sound. Applies at the next CarPlay connection.</string>
     <string name="smooth_video">Smooth video (experimental)</string>
     <string name="smooth_video_description">Shows each main-screen CarPlay frame at the time the iPhone stamped on it plus a short delay, instead of as soon as it is decoded. The delay adjusts itself so that most frames are decoded in time; frames still not ready by their time are shown at once. Scrolling can look more even, but touches respond later. Picture adjustments do not apply. Reconnects CarPlay.</string>
+    <string name="settings_direct_video_output">Direct video output (experimental)</string>
+    <string name="settings_direct_video_output_description">Sends the CarPlay picture straight to the head unit\'s compositor instead of drawing it inside the DiPlay window. Can lower the delay by about one screen refresh. Picture adjustments do not apply. Reconnects CarPlay.</string>
+    <string name="settings_low_latency_decoder">Low-latency decoding (experimental)</string>
+    <string name="settings_low_latency_decoder_description">Asks Qualcomm video decoders to output each frame as soon as it is decoded instead of holding the next ones, and shows each decoded frame from a dedicated thread without waiting for the next one to arrive. Can lower the delay by tens of milliseconds. Turn it off if the picture shows artifacts or freezes. Applies at the next connection.</string>
+    <string name="settings_fps_counter">FPS counter</string>
+    <string name="settings_fps_counter_description">Shows a counter in the top-right corner of CarPlay: frames shown per second (green from 50, yellow from 30, red below), frames received from the iPhone per second, and the decode time. A still screen shows few frames because the iPhone sends none.</string>
+    <string name="fps_counter_text" translatable="false">%1$d FPS\nRX %2$d · %3$s</string>
+    <string name="fps_counter_millis" translatable="false">%1$d ms</string>
+    <string name="fps_counter_no_value" translatable="false">–</string>
+    <string name="fps_counter_waiting" translatable="false">-- FPS</string>
     <string name="car_button_in_carplay">Car button in CarPlay</string>
     <string name="car_button_icon">Icon</string>
     <string name="car_button_icon_custom">Custom icon</string>
@@ -842,6 +853,41 @@
     <string name="this_head_unit_has_no_image_picker">This head unit has no image picker.</string>
     <!-- carlito | GD vehicle probe integration. -->
     <string name="vehicle_probe">Vehicle property scan</string>
+
+    <!-- Optional BYD ambient lighting. -->
+    <string name="settings_ambient_title">Ambient lighting (experimental)</string>
+    <string name="settings_ambient_configuration">Ambient light settings</string>
+    <string name="settings_ambient_static">Fixed</string>
+    <string name="settings_ambient_energy">Sound energy</string>
+    <string name="settings_ambient_beat">Beat</string>
+    <string name="settings_ambient_tempo">Estimated BPM</string>
+    <string name="settings_ambient_bass">Bass priority</string>
+    <string name="settings_ambient_smart">Smart follow</string>
+    <string name="settings_ambient_slow">Smooth</string>
+    <string name="settings_ambient_standard">Standard</string>
+    <string name="settings_ambient_fast">Fast</string>
+    <string name="settings_ambient_enabled">On</string>
+    <string name="settings_ambient_disabled">Off</string>
+    <string name="settings_ambient_summary">%1$s · %2$s · %3$s · %4$d colors · brightness %5$d</string>
+    <string name="settings_ambient_enable">Enable ambient light control</string>
+    <string name="settings_ambient_enable_description">Turning this off attempts to restore the original lamp colors, brightness and area. Existing ADB authorization is required.</string>
+    <string name="settings_ambient_music">Follow music</string>
+    <string name="settings_ambient_music_description">When playing, follow the music or use fixed colors and brightness if disabled. Pausing or disconnecting holds all zones at the lowest level in either mode. Changes apply after saving.</string>
+    <string name="settings_ambient_color_mode">Color changes</string>
+    <string name="settings_ambient_speed">Brightness transition speed</string>
+    <string name="settings_ambient_palette">OEM color numbers (multiple selections)</string>
+    <string name="settings_ambient_palette_summary">Colors · %1$d selected</string>
+    <string name="settings_ambient_select_all">Select all</string>
+    <string name="settings_ambient_select_one">Select at least one color</string>
+    <string name="settings_ambient_brightness">Maximum brightness</string>
+    <string name="settings_ambient_minimum">0 (lowest level)</string>
+    <string name="settings_ambient_area">Area</string>
+    <string name="settings_ambient_front">Front</string>
+    <string name="settings_ambient_rear">Rear</string>
+    <string name="settings_ambient_all">All</string>
+    <string name="settings_ambient_parked_notice">Configure while parked. Experimental support for selected BYD lamp interfaces; compatibility is not guaranteed for every model or firmware. Level 0 means the lowest OEM level, not power off.</string>
+    <string name="settings_ambient_checking">Checking…</string>
+    <string name="settings_ambient_unavailable">Read-only check failed: existing ADB authorization or a supported lamp interface is unavailable. No light settings were saved. Configure access separately while parked; this feature does not enable ADB or request authorization.</string>
     <string name="settings_interface_size">Interface size</string>
     <string name="settings_interface_size_auto">Automatic</string>
     <string name="settings_interface_size_hint">Size of text and controls on DiPlay\'s own screens. Automatic enlarges them on large screens with a low density. CarPlay is not affected.</string>
@@ -881,4 +927,22 @@
     <string name="setup_badge_adb">Needs ADB over network</string>
     <string name="setup_done_title">You’re ready</string>
     <string name="setup_done_description">Connect your iPhone now. You can open this guide again from Settings.</string>
+    <string name="settings_discard_pending_title">Discard your changes?</string>
+    <string name="settings_discard_pending_message">Resolution, frame rate, connection and the other settings you just changed are not saved yet. Save and reconnect applies them.</string>
+    <string name="settings_discard_pending_confirm">Discard</string>
+    <string name="settings_gesture_disabled">Off</string>
+    <string name="settings_gesture_disabled_hint">Swipe-down shortcut is disabled.</string>
+    <string name="settings_gesture_disabled_action">Quick menu · swipe disabled (tap to change)</string>
+    <string name="bt_suspend_delay">Bluetooth pause delay</string>
+    <string name="bt_suspend_delay_option">%1$d s after connecting</string>
+    <string name="bt_suspend_during_carplay">Pause car Bluetooth during CarPlay · needs ADB</string>
+    <string name="bt_suspend_during_carplay_description">The phone keeps its hands-free link to the car, so a call rings on both the car Bluetooth phone and CarPlay. While CarPlay runs, pause the car Bluetooth over ADB so calls ring on CarPlay only; with Bluetooth off, CarPlay calls play on the cabin speaker and microphone instead of the phone SCO. Bluetooth turns back on when CarPlay ends and before the next wireless handshake. Pairing is never touched. Changes apply on the next connection.</string>
+    <string name="cluster_small_window_card_theme">Small-window turn card theme</string>
+    <string name="cluster_small_window_card_theme_follow">Follow the turn card theme</string>
+    <string name="cluster_small_window_card_size">Small-window turn card · size</string>
+    <string name="cluster_small_window_card_horizontal">Small-window turn card · left/right</string>
+    <string name="cluster_small_window_card_vertical">Small-window turn card · up/down</string>
+    <string name="cluster_small_window_card_opacity">Small-window turn card · opacity</string>
+    <string name="turn_card_theme_day">Always day</string>
+    <string name="turn_card_theme_night">Always night</string>
 </resources>

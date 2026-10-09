@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="card_preview_title">Предпросмотр положения карточки поворота</string>
+    <string name="card_preview_note">Положение показано относительно всей панели. Граница малого окна зависит от автомобиля.</string>
+    <string name="card_preview_full">Полный экран</string>
+    <string name="card_preview_small">Малое окно</string>
+</resources>

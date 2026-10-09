@@ -5,6 +5,7 @@ import com.shilapi.xcertplay.iap2.catalog.Iap2Endpoints
 import com.shilapi.xcertplay.iap2.message.Iap2Messages
 import com.shilapi.xcertplay.iap2.session.Iap2Session
 import com.shilapi.xcertplay.iap2.wire.Iap2Frame
+import com.shilapi.xcertplay.iap2.wire.Iap2Parameter
 import com.shilapi.xcertplay.transport.Iap2VehicleStatus.electricVehicleComponents
 import java.io.IOException
 import kotlin.math.min
@@ -136,9 +137,14 @@ internal fun Iap2IdentificationConfig.forWirelessLink(
 
 /** Identification failures distinguished from the underlying iAP2 transport failure. */
 sealed class Iap2IdentificationException(message: String) : IOException(message) {
-    class Rejected(parameterIds: Set<Int>) : Iap2IdentificationException(
-        "iAP2 identification rejected parameters ${parameterIds.sorted().joinToString(prefix = "[", postfix = "]") { "0x${it.toString(16).padStart(4, '0')}" }}; " +
-            "this minimal identification profile has no optional components to remove",
+    class Rejected(
+        parameterIds: Set<Int>,
+        val unsupportedMessagesSent: Iap2RejectedMessageList? = null,
+        val unsupportedMessagesReceived: Iap2RejectedMessageList? = null,
+    ) : Iap2IdentificationException(
+        "iAP2 identification rejected before MFi authentication; parameters ${parameterIds.sorted().hexadecimalIds()}; " +
+            "unsupported messages sent=${unsupportedMessagesSent?.diagnostic() ?: "absent"} " +
+            "received=${unsupportedMessagesReceived?.diagnostic() ?: "absent"}",
     ) {
         val parameterIds: Set<Int> = parameterIds.toSet()
     }
@@ -147,6 +153,25 @@ sealed class Iap2IdentificationException(message: String) : IOException(message)
         "Unexpected iAP2 identification message 0x${messageId.toString(16).padStart(4, '0')}",
     )
 }
+
+/** Bounded diagnostic values from IdentificationRejected parameter 6 or 7, not negotiated features. */
+data class Iap2RejectedMessageList internal constructor(
+    val messageIds: List<Int>,
+    val payloadCount: Int,
+    val emptyPayloadCount: Int,
+    val malformedPayloadCount: Int,
+    val omittedMessageCount: Int,
+) {
+    internal fun diagnostic(): String =
+        "${messageIds.hexadecimalIds()} " +
+            "payloads=$payloadCount empty=$emptyPayloadCount malformed=$malformedPayloadCount " +
+            "duplicateParameters=${payloadCount > 1} " +
+            "duplicateRetainedIds=${messageIds.size != messageIds.toSet().size} " +
+            "omitted=$omittedMessageCount"
+}
+
+private fun Iterable<Int>.hexadecimalIds(): String =
+    joinToString(prefix = "[", postfix = "]") { "0x${it.toString(16).padStart(4, '0')}" }
 
 /**
  * Synchronous accessory-side wired or wireless identification over an already owned CSM channel.
@@ -173,8 +198,7 @@ class Iap2IdentificationClient(private val session: Iap2Session) {
                 START_IDENTIFICATION -> session.send(identificationInformation(config), remainingMillis(deadlineNanos))
                 IDENTIFICATION_ACCEPTED -> return
                 IDENTIFICATION_REJECTED -> {
-                    val rejected = Iap2BodyReader.of(frame).list().mapTo(LinkedHashSet()) { it.id }
-                    throw Iap2IdentificationException.Rejected(rejected)
+                    throw identificationRejection(frame)
                 }
                 else -> throw Iap2IdentificationException.UnexpectedMessage(frame.messageId)
             }
@@ -190,6 +214,52 @@ class Iap2IdentificationClient(private val session: Iap2Session) {
         private const val DEFAULT_TIMEOUT_MILLIS = 10_000L
         private const val MAXIMUM_TIMEOUT_MILLIS = 5 * 60 * 1_000L
         private const val NANOS_PER_MILLISECOND = 1_000_000L
+        private const val MAX_REJECTED_MESSAGE_IDS = 32
+
+        internal fun identificationRejection(frame: Iap2Frame): Iap2IdentificationException.Rejected {
+            val parameters = Iap2BodyReader.of(frame).list()
+            return Iap2IdentificationException.Rejected(
+                parameterIds = parameters.mapTo(LinkedHashSet()) { it.id },
+                unsupportedMessagesSent = rejectedMessageList(parameters, 6),
+                unsupportedMessagesReceived = rejectedMessageList(parameters, 7),
+            )
+        }
+
+        private fun rejectedMessageList(parameters: List<Iap2Parameter>, id: Int): Iap2RejectedMessageList? {
+            val payloads = parameters.filter { it.id == id }
+            if (payloads.isEmpty()) return null
+            val messageIds = ArrayList<Int>(MAX_REJECTED_MESSAGE_IDS)
+            var emptyPayloadCount = 0
+            var malformedPayloadCount = 0
+            var omittedMessageCount = 0
+            for (parameter in payloads) {
+                val payload = parameter.payload
+                when {
+                    payload.isEmpty() -> emptyPayloadCount++
+                    payload.size % 2 != 0 -> malformedPayloadCount++
+                    else -> {
+                        // These two rejection parameters contain BE16 message IDs, unlike the
+                        // empty presence markers used by other rejected identification fields.
+                        // Keep repetitions visible and do not guess IDs from an odd-length payload.
+                        for (offset in payload.indices step 2) {
+                            if (messageIds.size < MAX_REJECTED_MESSAGE_IDS) {
+                                messageIds += ((payload[offset].toInt() and 0xff) shl 8) or
+                                    (payload[offset + 1].toInt() and 0xff)
+                            } else {
+                                omittedMessageCount++
+                            }
+                        }
+                    }
+                }
+            }
+            return Iap2RejectedMessageList(
+                messageIds = messageIds.toList(),
+                payloadCount = payloads.size,
+                emptyPayloadCount = emptyPayloadCount,
+                malformedPayloadCount = malformedPayloadCount,
+                omittedMessageCount = omittedMessageCount,
+            )
+        }
 
         /** Builds the smallest honest LIVI-compatible wired or wireless IdentificationInformation. */
         fun identificationInformation(config: Iap2IdentificationConfig): Iap2Frame {

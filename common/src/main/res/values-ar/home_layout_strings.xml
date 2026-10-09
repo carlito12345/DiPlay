@@ -1,4 +1,4 @@
 <resources>
     <string name="settings_force_full_settings">فرض تخطيط الإعدادات الكامل</string>
-    <string name="settings_force_full_settings_hint">استخدام تخطيط الإعدادات الكامل مع شريط الفئات في الوضع الأفقي فقط. يعود الوضع العمودي إلى التخطيط التلقائي. قد يلزم التمرير في النوافذ الصغيرة. لا يغيّر الشاشة الرئيسية أو CarPlay.</string>
+    <string name="settings_force_full_settings_hint">استخدام تخطيط الإعدادات الكامل مع شريط الفئات في الوضع الأفقي فقط، مع العودة إلى التخطيط التلقائي في الوضع العمودي. لا يغيّر الشاشة الرئيسية أو CarPlay.</string>
 </resources>

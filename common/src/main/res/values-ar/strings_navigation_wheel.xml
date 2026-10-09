@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_navigation_wheel_volume">مستوى الصوت من المقود أثناء إرشادات الملاحة (تجريبي)</string>
+    <string name="settings_navigation_wheel_volume_description">أثناء إرشادات CarPlay الصوتية، تضبط مفاتيح الصوت مسار صوت الملاحة المحدد. وفي غير ذلك تتبع سلوك وحدة السيارة. يلزم إذن خدمة تسهيل الاستخدام لمفاتيح المقود. تحتفظ المكالمات وتقريب الخريطة وعصا التحكم بالأولوية. اختُبر محليًا على Tang بمنصة 21؛ وما زال إصدار upstream يحتاج إلى اختبار في السيارة. لا يتم اعتراض التوجيه التلقائي أو مسار الوسائط.</string>
+    <string name="settings_navigation_wheel_service_required">اسمح بخدمة تسهيل الاستخدام لمفاتيح المقود في إعدادات Android، أو استخدم زر ترخيص ADB الموجود.</string>
+</resources>

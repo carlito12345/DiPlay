@@ -132,6 +132,23 @@ class CarPlayViewAreasTest {
     }
 
     @Test
+    fun theSidePanelLeavesCarPlayTwoThirdsHalfOrOneThird() {
+        val areas = CarPlayViewAreas.build(2560, 1440, CarPlayDock.AUTOMATIC, splitWindow = null, sidePanel = true)!!
+        assertEquals(listOf(1706, 1280, 852), CarPlayViewAreas.SIDE_PANEL_SIXTHS.map { areas.areas[areas.sidePanel(sixths = it)!!].width })
+        // The panel covers the rest of the screen in each.
+        assertEquals(AirPlayViewArea(1708, 1440, 852, 0), areas.panelRect(areas.sidePanel(sixths = 2)!!))
+        // Two thirds without a choice.
+        assertEquals(areas.sidePanel(sixths = 4), areas.sidePanel())
+    }
+
+    @Test
+    fun releasingThePanelEdgeSnapsCarPlayToTheNearestShare() {
+        assertEquals(4, CarPlayViewAreas.nearestSidePanelSixths(0.8))
+        assertEquals(3, CarPlayViewAreas.nearestSidePanelSixths(0.55))
+        assertEquals(2, CarPlayViewAreas.nearestSidePanelSixths(0.2))
+    }
+
+    @Test
     fun aWindowNeverPicksTheSidePanelByItself() {
         val areas = CarPlayViewAreas.build(2560, 1440, CarPlayDock.AUTOMATIC, splitWindow = null, sidePanel = true)!!
         assertEquals(0, areas.indexFor(2560, 1440, splitScreen = false))

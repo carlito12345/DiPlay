@@ -2,7 +2,7 @@ package com.shilapi.xcertplay.orchestration
 
 /** Rules an existing (car) hotspot must meet before CarPlay can hand its credentials to the iPhone. */
 object ManualHotspotValidation {
-    /** Security implied by the password: the car hotspot UI only offers open or WPA2 networks. */
+    /** Default when no security mode was selected; a password alone cannot identify WPA3. */
     fun securityFor(passphrase: String): ManualHotspotSecurity =
         if (passphrase.isEmpty()) ManualHotspotSecurity.OPEN else ManualHotspotSecurity.WPA2
 

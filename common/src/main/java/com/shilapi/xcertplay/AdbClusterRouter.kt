@@ -5,14 +5,22 @@ import com.shilapi.xcertplay.adb.AdbKeys
 import com.shilapi.xcertplay.adb.LocalAdb
 import java.io.File
 
-/** Strictly measured DiLink 4 target, discovered afresh through the authorized shell. */
+/** Strict projection target, discovered afresh through the authorized shell. */
 internal object AdbClusterRouter {
     private const val REPORT = "adb-cluster-route.txt"
     data class Result(val success: Boolean, val report: String)
 
-    /** Existing public cluster displays always win, even when the experimental switch is saved. */
-    fun enabled(context: Context): Boolean = AirPlayPersistence.loadAdbClusterEnabled(context) &&
-        !DiLink51ClusterLayout.supported() && ClusterMapPresentation.findDisplay(context) == null
+    /** Known 5/5.1 displays win; the explicit legacy route may own the measured projection task. */
+    fun enabled(context: Context): Boolean {
+        if (DiLink51ClusterLayout.supported()) return false
+        val public = ClusterMapPresentation.findDisplay(context)
+        if (AirPlayPersistence.loadLegacyClusterEnabled(context)) {
+            // Only the measured projection may use the independent task; public 5/5.1 wins.
+            return public == null || DiLink4ClusterDisplay.matches(public.name,
+                ClusterMapPresentation.sizeOf(public).x, ClusterMapPresentation.sizeOf(public).y)
+        }
+        return AirPlayPersistence.loadAdbClusterEnabled(context) && public == null
+    }
 
     // Match only the base logical display, not a device's layer-stack number or override record.
     internal fun displayId(dump: String): Int? {
@@ -58,7 +66,8 @@ internal object AdbClusterRouter {
         var success = false
         val text = buildString {
             appendLine("ADB direct cluster launch capturedAt=${java.util.Date()}")
-            appendLine("diLink3ModeSwitchSuppressed=" + AirPlayPersistence.loadAdbClusterEnabled(context))
+            appendLine("platform21Route=" + AirPlayPersistence.loadLegacyClusterEnabled(context))
+            appendLine("diLink3ModeSwitchSuppressed=" + (AirPlayPersistence.loadAdbClusterEnabled(context) || AirPlayPersistence.loadLegacyClusterEnabled(context)))
             appendLine("calibrationOnly=${!holdStockMap}")
             appendLine("stockMapHoldMode=" + com.shilapi.xcertplay.hud.BydOutputSettings.oemClusterHold(context))
             try {
@@ -69,7 +78,7 @@ internal object AdbClusterRouter {
                     val display = displayId(adb.shell("dumpsys display").orEmpty())
                     appendLine("routeTarget=${display ?: "none"}")
                     if (display == null || !enabled(context) || !prepare(display)) return@use
-                    val held = !holdStockMap || com.shilapi.xcertplay.hud.BydOemClusterNavi.holdForLaunch(context, token) {
+                    val held = AirPlayPersistence.loadLegacyClusterEnabled(context) || !holdStockMap || com.shilapi.xcertplay.hud.BydOemClusterNavi.holdForLaunch(context, token) {
                         enabled(context) && prepare(display)
                     }
                     appendLine("stockMapHoldReady=$held")

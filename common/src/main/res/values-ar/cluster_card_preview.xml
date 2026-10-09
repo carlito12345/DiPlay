@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="card_preview_title">معاينة موضع بطاقة الانعطاف</string>
+    <string name="card_preview_note">موضع نسبي على لوحة العدادات كاملة. تختلف حدود النافذة الصغيرة حسب السيارة.</string>
+    <string name="card_preview_full">شاشة كاملة</string>
+    <string name="card_preview_small">نافذة صغيرة</string>
+</resources>

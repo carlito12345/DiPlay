@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="platform21_cluster_mode">平台21儀表獨立視窗（實驗性）</string>
+    <string name="platform21_cluster_description">適用於2023唐DM-i平台21適配。預設關閉，僅使用核驗後的投影顯示，在透明畫布中央顯示半寬地圖，不切換原廠儀表模式，也不停用原廠地圖。需要已授權的本機ADB。套用設定會重新連接CarPlay，此次上游整合仍需停車實測。</string>
+</resources>

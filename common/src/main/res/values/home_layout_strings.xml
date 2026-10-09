@@ -1,4 +1,4 @@
 <resources>
     <string name="settings_force_full_settings">Force full Settings layout</string>
-    <string name="settings_force_full_settings_hint">Use the full Settings layout with a category sidebar in landscape only. Portrait keeps the automatic layout. Small windows may require scrolling. Does not change the home screen or CarPlay.</string>
+    <string name="settings_force_full_settings_hint">Use the full Settings layout with a category sidebar in landscape, with automatic layout in portrait. Does not change the home screen or CarPlay.</string>
 </resources>

@@ -39,13 +39,27 @@ class AdbClusterActivity : Activity() {
         window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_FULLSCREEN or
             View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
         val root = FrameLayout(this).apply { setBackgroundColor(Color.TRANSPARENT) }
-        val video = ClusterVideoTexture(this) { next ->
+        val video = ClusterVideoTexture(this, onPresented = { ClusterActivityOutput.presented(this) }) { next ->
             surface?.let { ClusterActivityOutput.detach(this, it) }
             surface = next
             if (next != null && ClusterActivityOutput.activity.get() === this)
                 ClusterActivityOutput.attach(this, next)
         }.also { videoTexture = it }
-        root.addView(video, FrameLayout.LayoutParams(-1, -1))
+        val legacy = AirPlayPersistence.loadLegacyClusterEnabled(this)
+        val videoRegion = FrameLayout(this)
+        videoRegion.addView(video, FrameLayout.LayoutParams(-1, -1))
+        root.addView(videoRegion, FrameLayout.LayoutParams(-1, -1))
+        if (legacy) root.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
+            LegacyClusterLayout.plan(root.width, root.height)?.let { plan ->
+                val current = videoRegion.layoutParams as FrameLayout.LayoutParams
+                if (current.width != plan.width || current.height != plan.height ||
+                    current.leftMargin != plan.left || current.topMargin != plan.top) {
+                    videoRegion.layoutParams = FrameLayout.LayoutParams(plan.width, plan.height).apply {
+                        leftMargin = plan.left; topMargin = plan.top
+                    }
+                }
+            }
+        }
         waiting = TextView(this).apply {
             setBackgroundColor(Color.BLACK)
             setTextColor(Color.WHITE)
@@ -53,7 +67,7 @@ class AdbClusterActivity : Activity() {
             gravity = Gravity.CENTER
             setPadding(24, 24, 24, 24)
         }
-        root.addView(waiting, FrameLayout.LayoutParams(-1, -1))
+        videoRegion.addView(waiting, FrameLayout.LayoutParams(-1, -1))
         turnCard = ClusterTurnCardView(this).apply { visibility = View.GONE }
         root.addView(turnCard, FrameLayout.LayoutParams(-1, -1))
         safeAreaPreview = SafeAreaEditorView(this).apply {
@@ -65,7 +79,7 @@ class AdbClusterActivity : Activity() {
         setContentView(root)
         root.post {
             val attached = root.display?.displayId ?: -1
-            if (attached > 0) confirmDisplay(token, attached)
+            if (attached > 0 && !legacy) confirmDisplay(token, attached)
             else Thread({
                 val verified = AdbClusterRouter.verify(applicationContext, taskId)
                 runOnUiThread { confirmDisplay(token, verified ?: -1) }
@@ -134,7 +148,21 @@ internal object ClusterActivityOutput {
     @Volatile private var launchToken: String? = null
     @Volatile private var expectedDisplay = -1
     private var launchHost = WeakReference<Activity>(null)
-    private val retryTick = Runnable { launchHost.get()?.let(::ensure) }
+    private var legacyPresented = false
+    private val retryTick = Runnable {
+        launchHost.get()?.let { host ->
+            ensure(host)
+            if (AirPlayPersistence.loadLegacyClusterEnabled(host) && !legacyPresented) retry()
+        }
+    }
+
+    /** Texture updates confirm an output frame, rather than only a successful shell reply. */
+    fun presented(window: AdbClusterActivity) {
+        if (legacyPresented || activity.get() !== window || !AirPlayPersistence.loadLegacyClusterEnabled(window) ||
+            !streamActive || surfaceOwner !== window || surface?.isValid != true || !hasConfirmedRoute()) return
+        legacyPresented = true
+        main.removeCallbacks(retryTick)
+    }
 
     fun acceptsToken(token: String?): Boolean = token != null && token == launchToken && (hostOwner != null || previewHost.get() != null)
     fun hasConfirmedRoute(): Boolean = activity.get()?.let { !it.isFinishing && !it.isDestroyed } == true &&
@@ -146,12 +174,15 @@ internal object ClusterActivityOutput {
         activity = WeakReference(window)
         launchPending = false
         main.removeCallbacks(retryTick)
+        if (AirPlayPersistence.loadLegacyClusterEnabled(window) && !legacyPresented) retry()
         return true
     }
-    fun retry() {
+    fun retry(force: Boolean = false) {
+        if (force) legacyPresented = false
         main.removeCallbacks(retryTick)
-        if ((hostOwner != null || previewHost.get() != null) && launchHost.get() != null)
-            main.postDelayed(retryTick, 5_000L)
+        val host = launchHost.get() ?: return
+        if (AirPlayPersistence.loadLegacyClusterEnabled(host) && legacyPresented) return
+        if (hostOwner != null || previewHost.get() != null) main.postDelayed(retryTick, 5_000L)
     }
     var mainTaskId = -1
         private set
@@ -231,6 +262,8 @@ internal object ClusterActivityOutput {
 
     fun ensure(host: Activity) {
         if (!AdbClusterRouter.enabled(host) || host.isFinishing || host.isDestroyed) return
+        if (AirPlayPersistence.loadLegacyClusterEnabled(host) && legacyPresented &&
+            activity.get()?.let { !it.isFinishing && !it.isDestroyed } != true) return
         if (hostOwner !== host && !(hostOwner == null && previewHost.get() === host)) return
         launchHost = WeakReference(host)
         if (activity.get()?.let { !it.isFinishing && !it.isDestroyed } == true || launchPending) return
@@ -298,6 +331,7 @@ internal object ClusterActivityOutput {
         val releaseContext = launchHost.get()?.applicationContext
         val releaseLease = launchToken
         ++generation
+        legacyPresented = false
         launchToken = null
         expectedDisplay = -1
         launchHost.clear()
