@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- carlito | Keep generic Simplified Chinese settings aligned with the China locale. -->
+<resources>
+    <string name="settings_ambient_all">全部</string>
+    <string name="settings_ambient_area">区域</string>
+    <string name="settings_ambient_bass">鼓点优先</string>
+    <string name="settings_ambient_beat">随节拍</string>
+    <string name="settings_ambient_brightness">亮度上限</string>
+    <string name="settings_ambient_checking">正在检查…</string>
+    <string name="settings_ambient_color_mode">颜色变化方式</string>
+    <string name="settings_ambient_configuration">氛围灯配置</string>
+    <string name="settings_ambient_disabled">已关闭</string>
+    <string name="settings_ambient_enable">开启氛围灯控制</string>
+    <string name="settings_ambient_enable_description">关闭后尝试恢复接管前的原车颜色、亮度和区域。需要已有的ADB授权。</string>
+    <string name="settings_ambient_enabled">已开启</string>
+    <string name="settings_ambient_energy">随声音强弱</string>
+    <string name="settings_ambient_fast">快速</string>
+    <string name="settings_ambient_front">前排</string>
+    <string name="settings_ambient_minimum">0（最低亮度）</string>
+    <string name="settings_ambient_music">音乐律动</string>
+    <string name="settings_ambient_music_description">播放时随音乐变化；关闭律动则使用固定颜色和亮度。两种模式在暂停或断开后均降到全部区域最低档，保存后生效。</string>
+    <string name="settings_ambient_palette">原车颜色编号（多选）</string>
+    <string name="settings_ambient_palette_summary">颜色 · 已选%1$d种</string>
+    <string name="settings_ambient_parked_notice">请在车辆停放时配置。本功能针对部分BYD氛围灯接口，不能保证所有车型和固件兼容。亮度0代表原车最低档，不代表断电关闭。</string>
+    <string name="settings_ambient_rear">后排</string>
+    <string name="settings_ambient_select_all">全选</string>
+    <string name="settings_ambient_select_one">至少选择一种颜色</string>
+    <string name="settings_ambient_slow">舒缓</string>
+    <string name="settings_ambient_smart">智能跟随</string>
+    <string name="settings_ambient_speed">亮度过渡速度</string>
+    <string name="settings_ambient_standard">标准</string>
+    <string name="settings_ambient_static">固定</string>
+    <string name="settings_ambient_summary">%1$s · %2$s · %3$s · %4$d色 · 亮度%5$d</string>
+    <string name="settings_ambient_tempo">随BPM（估算）</string>
+    <string name="settings_ambient_title">氛围灯（实验性）</string>
+    <string name="settings_ambient_unavailable">只读检查失败：已有ADB授权或支持的氛围灯接口不可用，灯光设置未保存。请在停车时单独配置访问权限，本功能不会启用ADB或申请授权。</string>
+    <string name="settings_direct_video_output">直接视频输出（实验性）</string>
+    <string name="settings_direct_video_output_description">将 CarPlay 画面直接交给车机的系统合成器，而不是在 DiPlay 窗口内绘制。可将延迟降低约一次屏幕刷新。画面调整不适用。会重新连接 CarPlay。</string>
+    <string name="settings_discard_pending_confirm">放弃</string>
+    <string name="settings_discard_pending_message">你刚更改的分辨率、帧率、连接以及其余设置尚未保存。“保存并重新连接”会应用它们。</string>
+    <string name="settings_discard_pending_title">要放弃更改吗？</string>
+    <string name="settings_fps_counter">FPS 计数器</string>
+    <string name="settings_fps_counter_description">在 CarPlay 右上角显示计数器：每秒显示的帧数（50 及以上为绿色，30 及以上为黄色，低于 30 为红色）、每秒从 iPhone 接收的帧数以及解码时间。画面静止时帧数很少，因为 iPhone 不发送帧。</string>
+    <string name="settings_gesture_disabled">关闭</string>
+    <string name="settings_gesture_disabled_action">快捷菜单 · 关闭下滑（点按切换）</string>
+    <string name="settings_gesture_disabled_hint">已关闭向下滑动打开快捷菜单的手势。</string>
+    <string name="settings_low_latency_decoder">低延迟解码（实验性）</string>
+    <string name="settings_low_latency_decoder_description">要求高通视频解码器在每一帧解码后立即输出，而不是保留后续帧，并由专用线程立即显示每个已解码的帧，无需等待下一帧到达。可将延迟降低数十毫秒。如果画面出现花屏或卡住，请关闭。下次连接时生效。</string>
+    <string name="settings_navigation_wheel_service_required">请在 Android 设置中允许方向盘按键无障碍服务，或使用现有 ADB 授权按钮。</string>
+    <string name="settings_navigation_wheel_volume">导航播报时方向盘调节导航音量（实验性）</string>
+    <string name="settings_navigation_wheel_volume_description">CarPlay 导航播报期间，音量键调节所选导航音量；其他时候按车机原有方式处理。需要方向盘按键无障碍权限。通话、地图缩放和摇杆保持优先。选择自动或媒体通道时不接管音量键。</string>
+</resources>

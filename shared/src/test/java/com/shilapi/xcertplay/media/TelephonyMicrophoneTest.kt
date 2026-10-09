@@ -80,7 +80,7 @@ class TelephonyMicrophoneTest {
     }
 
     @After fun tearDown() {
-        sink.close()
+        if (::sink.isInitialized) sink.close()
         ShadowAudioRecord.clearSource()
     }
 
@@ -562,7 +562,7 @@ class TelephonyMicrophoneTest {
         AndroidMediaSink(context = context, audioFocusEnabled = audioFocusEnabled,
             unifiedMediaOutput = unifiedMediaOutput, onAudioDiagnostic = onAudioDiagnostic).also { created ->
             (created.javaClass.getDeclaredField("routePoll").apply { isAccessible = true }.get(created)
-                as ScheduledFuture<*>).cancel(false)
+                as ScheduledFuture<*>?)?.cancel(false)
             val worker = created.javaClass.getDeclaredField("audioRouteWorker")
                 .apply { isAccessible = true }.get(created) as ScheduledExecutorService
             worker.submit {}.get(5, TimeUnit.SECONDS)

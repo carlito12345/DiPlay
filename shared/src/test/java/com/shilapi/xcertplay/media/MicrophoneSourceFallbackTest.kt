@@ -186,7 +186,8 @@ class MicrophoneSourceFallbackTest {
             val effects = ShadowAudioEffect.getAudioEffects()
             assertEquals(2, effects.size)
             assertFalse(effects.filterIsInstance<AcousticEchoCanceler>().single().enabled)
-            assertTrue(effects.filterIsInstance<NoiseSuppressor>().single().enabled)
+            // carlito | Software AEC denoises after cancellation; platform NS stays disabled.
+            assertFalse(effects.filterIsInstance<NoiseSuppressor>().single().enabled)
             effects.forEach {
                 assertEquals(captured.get()!!.audioSessionId, Shadow.extract<ShadowAudioEffect>(it).audioSession)
             }

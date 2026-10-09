@@ -159,15 +159,15 @@ class AudioFocusAutoYieldTest {
         assertTrue(volumes(late).isEmpty())
     }
 
-    @Test fun unifiedCallCaptureUsesMediaUsageAndTransientFocusOnEverySupportedApi() {
+    @Test fun unifiedPlaybackKeepsCallCaptureOnVoiceUsageAndTransientFocusOnEverySupportedApi() {
         val coordinator = AudioFocusCoordinator(context, true, unifiedMediaOutput = true).also(coordinators::add)
         coordinator.setMicrophones(phone = true, assistant = false)
         val sent = shadowOf(manager).lastAudioFocusRequest
         if (android.os.Build.VERSION.SDK_INT >= 26) {
-            assertEquals(AudioAttributes.USAGE_MEDIA, sent.audioFocusRequest.audioAttributes.usage)
+            assertEquals(AudioAttributes.USAGE_VOICE_COMMUNICATION, sent.audioFocusRequest.audioAttributes.usage)
             assertEquals(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT, sent.audioFocusRequest.focusGain)
         } else {
-            assertEquals(AudioManager.STREAM_MUSIC, sent.streamType)
+            assertEquals(AudioManager.STREAM_VOICE_CALL, sent.streamType)
             assertEquals(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT, sent.durationHint)
         }
         assertTrue(coordinator.captureAllowed())

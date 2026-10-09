@@ -59,7 +59,11 @@ internal class AudioFocusCoordinator(
     }
 
     @Synchronized private fun onFocusChanged(generation: Int, change: Int) {
-        if (closed || !enabled || generation != requestGeneration || request == null || active.isEmpty() && captures.isEmpty()) return
+        if (closed || !enabled || generation != requestGeneration || request == null || active.isEmpty() && captures.isEmpty()) {
+            // carlito | Explain discarded callbacks without changing the current focus owner.
+            runCatching { report("Audio: focus change=$change dropped stale=${generation != requestGeneration} noRequest=${request == null} activeTracks=${active.size}") }
+            return
+        }
         runCatching { report("Audio: focus change=$change activeTracks=${active.size}") }
         if (!vehicleRouting) {
             when (change) {

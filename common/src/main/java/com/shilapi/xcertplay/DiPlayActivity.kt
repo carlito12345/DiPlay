@@ -1587,7 +1587,7 @@ class DiPlayActivity : ComponentActivity(), AppAppearanceOwner {
                 setPadding(dp(16), dp(12), dp(16), dp(12))
                 backgroundTintList = ColorStateList.valueOf(ACCENT)
             }
-            card.addView(reportIssueInput, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(18) })
+            card.addView(reportIssueInput, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(SETTINGS_BLOCK_GAP_DP) })
             reportUploadButton = button(
                 if (reportUploadInProgress) getString(R.string.uploading_to_cloud) else getString(R.string.upload_report_to_cloud),
                 true,
