@@ -13,7 +13,7 @@ import android.media.MediaRecorder
 import android.media.audiofx.AcousticEchoCanceler
 import android.media.audiofx.AudioEffect
 import com.shilapi.xcertplay.airplay.AudioStreamId
-import com.shilapi.xcertplay.airplay.AudioFormat
+import com.shilapi.xcertplay.airplay.AudioFormat as AirPlayAudioFormat
 import com.shilapi.xcertplay.airplay.AudioCodecKind
 import com.shilapi.xcertplay.airplay.MicrophoneConfig
 import com.shilapi.xcertplay.vehicle.GeelyFactoryCarPlay
@@ -518,7 +518,7 @@ class TelephonyMicrophoneTest {
     private fun registerCallDownlink(id: AudioStreamId = telephony) {
         // Register the real renderer through its production callback without starting a playback
         // worker: these tests check capture ownership, not whether Robolectric renders audio.
-        sink.onAudioRtp(id, AudioFormat(AudioCodecKind.LPCM, 16_000, 1, id.type, "telephony"), byteArrayOf(), 0)
+        sink.onAudioRtp(id, AirPlayAudioFormat(AudioCodecKind.LPCM, 16_000, 1, id.type, "telephony"), byteArrayOf(), 0)
     }
 
     private fun provideCallFrame(nextRead: CountDownLatch? = null) {
