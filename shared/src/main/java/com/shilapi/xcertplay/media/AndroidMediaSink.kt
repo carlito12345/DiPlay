@@ -147,6 +147,8 @@ class AndroidMediaSink(
     private data class ActiveMicrophone(val request: PendingMicrophone, val uplink: MicrophoneUplink)
     private val pendingMicrophones = ConcurrentHashMap<AudioStreamId, PendingMicrophone>()
     private val microphoneUplinks = ConcurrentHashMap<AudioStreamId, ActiveMicrophone>()
+    // carlito | Report input readiness separately from the selected playback channel.
+    private var lastMicrophoneRouteDiagnostic: String? = null
     private val audioRouteWorker = Executors.newSingleThreadScheduledExecutor { Thread(it, "carplay-audio-route").apply { isDaemon = true } }
     private val communicationRoute = CommunicationAudioRoute(appContext, onAudioDiagnostic)
     private var scoRegistered = false
@@ -529,26 +531,43 @@ class AndroidMediaSink(
     private fun refreshCommunication(): Unit = synchronized(captureLock) {
         if (closed) return
         val closing = synchronized(audioModeLock) { closingCommunicationRenderers.toList() }
+        // carlito | Honor the recorder retry delay before reacquiring a call input route.
+        val phoneCapture = pendingMicrophones.values.any {
+            isPhoneAudio(it.config.audioType) && (it.retryAt == 0L || android.os.SystemClock.elapsedRealtime() >= it.retryAt) }
         val phone = synchronized(telephonyAudioTypes) { telephonyAudioTypes.isNotEmpty() } ||
-            closing.any { isPhoneAudio(it.format.audioType) } || pendingMicrophones.values.any {
-                isPhoneAudio(it.config.audioType) && (it.retryAt == 0L || android.os.SystemClock.elapsedRealtime() >= it.retryAt) }
+            closing.any { isPhoneAudio(it.format.audioType) } || phoneCapture
         val assistant = pendingMicrophones.values.any { it.config.audioType.equals("speechrecognition", true) } ||
             (audioRenderers.values + closing).any { it.format.audioType.equals("speechrecognition", true) }
-        val assistantVoiceDevice = audioOutputRoutes.assistant?.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO ||
+        val assistantVoiceDevice = (!unifiedMediaOutput && audioOutputRoutes.assistant?.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO) ||
             audioOutputRoutes.assistantMicrophone?.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO
-        // carlito | Media output must not switch global playback into earpiece/SCO communication mode.
-        val needCommunication = !unifiedMediaOutput && (phone || assistant && assistantVoiceDevice)
+        // carlito | Unified playback does not disable the mode/device required for call capture.
+        // Playback-only media streams do not acquire a communication route in unified mode.
+        val needCommunication = (!unifiedMediaOutput && phone || phoneCapture) || assistant && assistantVoiceDevice
         val hadCommunication = communicationRoute.held()
         val external = communicationRoute.externalCall()
         if (needCommunication && !external) communicationRoute.acquire(
-            if (unifiedMediaOutput) audioOutputRoutes.media else if (phone) audioOutputRoutes.phone else audioOutputRoutes.assistant,
-            if (unifiedMediaOutput) null else if (phone) audioOutputRoutes.phoneMicrophone else audioOutputRoutes.assistantMicrophone)
+            if (unifiedMediaOutput) null else if (phone) audioOutputRoutes.phone else audioOutputRoutes.assistant,
+            if (phone) audioOutputRoutes.phoneMicrophone else audioOutputRoutes.assistantMicrophone)
         audioFocusCoordinator.setExternalCall(communicationRoute.externalCall())
         audioFocusCoordinator.setMicrophones(
             pendingMicrophones.values.any { isPhoneAudio(it.config.audioType) },
             !phone && pendingMicrophones.values.any { it.config.audioType.equals("speechrecognition", true) })
         val ready = !communicationRoute.externalCall() && audioFocusCoordinator.captureAllowed() &&
             (!needCommunication || communicationRoute.captureReady())
+        val routeState = when {
+            pendingMicrophones.isEmpty() -> null
+            communicationRoute.externalCall() -> "blocked_native_call"
+            !audioFocusCoordinator.captureAllowed() -> "waiting_audio_focus"
+            !ready -> "waiting_communication_route"
+            else -> "ready"
+        }
+        val routeDiagnostic = routeState?.let {
+            "Microphone: route state=$it systemMuted=${runCatching { audioManager?.isMicrophoneMute }.getOrNull() ?: "unknown"}"
+        }
+        if (routeDiagnostic != lastMicrophoneRouteDiagnostic) {
+            lastMicrophoneRouteDiagnostic = routeDiagnostic
+            routeDiagnostic?.let { runCatching { onAudioDiagnostic(it) } }
+        }
         microphoneUplinks.entries.toList().forEach { (id, active) ->
             if (pendingMicrophones[id] !== active.request || !ready || phone && !isPhoneAudio(active.request.config.audioType)) {
                 if (microphoneUplinks.remove(id, active)) active.uplink.close()
@@ -567,8 +586,8 @@ class AndroidMediaSink(
                 val config = pending.config
                 val uplink = MicrophoneUplink(config, onAudioDiagnostic,
                     echoReference = if (config.audioType == TELEPHONY_AUDIO_TYPE) callEchoReferences[id] else null,
-                    factorySource = if (unifiedMediaOutput) null else factoryAudio?.microphoneSource(config.audioType, config.sampleRate, wirelessAudio),
-                    preferredInput = if (unifiedMediaOutput) null else audioOutputRoutes.microphone(config.audioType),
+                    factorySource = factoryAudio?.microphoneSource(config.audioType, config.sampleRate, wirelessAudio),
+                    preferredInput = audioOutputRoutes.microphone(config.audioType),
                     audioManager = audioManager, counters = pending.counters)
                 if (uplink.start() && !closed && pendingMicrophones[id] === pending) microphoneUplinks[id] = ActiveMicrophone(pending, uplink)
                 else { uplink.close(); pending.retryAt = android.os.SystemClock.elapsedRealtime() + 5_000L }
@@ -741,6 +760,11 @@ class AndroidMediaSink(
 
     fun onMediaPlaying(playing: Boolean) {
         audioFocusCoordinator.onMediaPlaying(playing)
+    }
+
+    // carlito | The controller owns pause/resume; the sink owns immediate local music suppression.
+    fun setSpeechPlaybackListener(listener: ((Boolean) -> Unit)?) {
+        audioFocusCoordinator.setSpeechPlaybackListener(listener)
     }
 
     private companion object {
@@ -1791,6 +1815,7 @@ private class AudioRenderer(
             diagnosticStage = "focus"
             requestAudioFocus()
             while (running) {
+                audioFocusCoordinator.refreshSpeechPlayback()
                 if (routeRefreshRequested.getAndSet(false)) applyPreferredOutput()
                 if (resumeRequested.getAndSet(false) && playbackStarted) {
                     track?.let { output ->
@@ -2014,6 +2039,9 @@ private class AudioRenderer(
     }
 
     private fun mappedSelection(): AudioChannelSelection {
+        if (format.audioType.equals("compatibility", true)) {
+            return AudioChannelSelection(AudioChannel.MEDIA, AudioContentType.SPEECH)
+        }
         if (unifiedMediaOutput && isVehicleNavigationAudio(format.audioType)) {
             return AudioChannelSelection(AudioChannel.NAVIGATION, AudioContentType.SPEECH)
         }
@@ -2300,6 +2328,13 @@ private class AudioRenderer(
 
     private fun writePcm(data: ByteArray, offset: Int = 0, length: Int = data.size) {
         val track = track ?: return
+        // carlito | Navigation remains an overlay; short compatibility/voice audio interrupts music.
+        if (length > 0 && (format.audioType.equals("compatibility", true) ||
+                mappedChannel in listOf(AudioChannel.PHONE, AudioChannel.ASSISTANT, AudioChannel.RINGTONE))) {
+            val pendingFrames = bufferProgress.queuedBytes(track.playbackHeadPosition) / frameBytes
+            val durationMillis = ((pendingFrames + length / frameBytes) * 1000L + format.sampleRate - 1L) / format.sampleRate
+            audioFocusCoordinator.onSpeechPlayback(track, durationMillis)
+        }
         diagnosticStage = "track-write"
         if (!firstPcmLogged && length > 0) {
             firstPcmLogged = true

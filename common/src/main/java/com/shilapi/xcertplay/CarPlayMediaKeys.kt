@@ -95,6 +95,10 @@ internal object CarPlayMediaKeys {
     private val observedKeys = ArrayDeque<String>()
     private val lastSystemTrigger = mutableMapOf<String, Long>()
     private var mediaAudioActive = false
+    // carlito | Resume only the music paused by this speech burst in the same controller session.
+    private var speechPlaying = false
+    private var resumeAfterSpeech = false
+    private var speechMedia: CarPlayNowPlaying? = null
     private var nowPlaying = CarPlayNowPlaying()
     private var elapsedUpdatedAt = 0L
     private var artwork: Bitmap? = null
@@ -140,6 +144,22 @@ internal object CarPlayMediaKeys {
         mainHandler.post { synchronized(this) { updateLocked(active) } }
     }
 
+    fun onSpeechPlayback(expected: CarPlayController, active: Boolean) {
+        mainHandler.post { synchronized(this) {
+            if (controller !== expected || speechPlaying == active) return@synchronized
+            speechPlaying = active
+            if (active) {
+                val playing = if (nowPlaying.title != null || nowPlaying.elapsedMillis != null) nowPlaying.playing else mediaAudioActive
+                speechMedia = nowPlaying
+                resumeAfterSpeech = playing && expected.sendMediaButton(CarPlayMediaButton.PAUSE)
+            } else {
+                val resume = resumeAfterSpeech
+                resumeAfterSpeech = false; speechMedia = null
+                if (resume) expected.sendMediaButton(CarPlayMediaButton.PLAY)
+            }
+        } }
+    }
+
     /** The iPhone started or stopped playing; may run on any thread. */
     private fun onIphonePlaying(expected: CarPlayController, playing: Boolean) {
         if (playing) mainHandler.post {
@@ -155,6 +175,10 @@ internal object CarPlayMediaKeys {
             synchronized(this) {
                 if (controller !== expected) return@synchronized
                 val previousArtwork = artwork
+                speechMedia?.let { before ->
+                    if (before.title != update.title || before.artist != update.artist || before.sourceApp != update.sourceApp)
+                        resumeAfterSpeech = false
+                }
                 if (nowPlaying.artworkTransferId != update.artworkTransferId) {
                     artwork = nextArtwork(update.artworkTransferId, artworkCache, artwork)
                 }
@@ -397,6 +421,9 @@ internal object CarPlayMediaKeys {
             learning?.onKey
         }
         if (learner != null) { learner(key); return }
+        // carlito | Passive OEM logs/broadcasts cannot consume the original music-card action.
+        if (key.source in listOf("logcat", "broadcast") &&
+            GeelySteeringKeyCodes.canonicalize(key.keyCode) in listOf(200085, 200087, 200088, 210005, 210006)) return
         // carlito | A bridge-owned key can also be logged/broadcast by the stock dispatcher.
         if (key.source !in listOf("oneos", "ecarx", "vehicle_bridge") && bridgeInput?.ownsCanonicalKey(
                 GeelySteeringKeyCodes.canonicalize(key.keyCode) ?: key.keyCode) == true) return
@@ -551,6 +578,7 @@ internal object CarPlayMediaKeys {
         }
         session = null
         mediaAudioActive = false
+        speechPlaying = false; resumeAfterSpeech = false; speechMedia = null
         nowPlaying = CarPlayNowPlaying()
         artwork = null
         artworkCache.clear()
@@ -587,6 +615,7 @@ internal object CarPlayMediaKeys {
         synchronized(this) {
             if (learning != null || now < suppressedUntil) return
             if (lastSentButton == index && group != lastSentSource && now - lastSentAt < 120L) return
+            resumeAfterSpeech = false
             lastSentButton = index; lastSentSource = group; lastSentAt = now
         }
         // While the car's video player is on screen the wheel drives it: a CarPlay play/pause would

@@ -8,6 +8,7 @@ import android.media.AudioTrack
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import com.shilapi.xcertplay.compat.AudioFocusRequestCompat
 import java.io.Closeable
 
@@ -20,12 +21,16 @@ internal class AudioFocusCoordinator(
     private val unifiedMediaOutput: Boolean = false,
     private val onOwnershipChanged: (Boolean) -> Unit = {},
 ) : Closeable {
-    private data class Entry(val channel: AudioChannel, val attributes: AudioAttributes, var appliedVolume: Float = 1f)
+    private data class Entry(val channel: AudioChannel, val attributes: AudioAttributes, var appliedVolume: Float = 1f) {
+        val music = channel == AudioChannel.MEDIA && attributes.contentType != AudioAttributes.CONTENT_TYPE_SPEECH
+    }
     private val manager = context?.getSystemService(AudioManager::class.java)
     private val active = LinkedHashMap<AudioTrack, Entry>()
     private val captures = LinkedHashMap<AudioChannel, Entry>()
     private var request: AudioFocusRequestCompat? = null
     private var requestedChannel: AudioChannel? = null
+    // carlito | Capture and playback can share a role but require different focus attributes.
+    private var requestedAttributes: AudioAttributes? = null
     private var requestGeneration = 0
     private var focusHeld = false
     private var focusVolume = 0f
@@ -36,6 +41,10 @@ internal class AudioFocusCoordinator(
     private var nativeBluetoothPlaying = false
     private var ownership: Boolean? = null
     private var closed = false
+    // carlito | Speech arbitration follows PCM playback, never a permanently negotiated stream.
+    private val speechDeadlines = LinkedHashMap<AudioTrack, Long>()
+    private var speechPlaying = false
+    private var speechListener: ((Boolean) -> Unit)? = null
     private val vehicleRouting = factoryRouting || unifiedMediaOutput
     private var currentListener = listenerFor(requestGeneration)
     internal val listener: AudioManager.OnAudioFocusChangeListener get() = currentListener
@@ -75,17 +84,41 @@ internal class AudioFocusCoordinator(
 
     @Synchronized fun acquire(track: AudioTrack, channel: AudioChannel, attributes: AudioAttributes) {
         if (closed) return
-        if (!vehicleRouting && (!enabled || manager == null || channel == AudioChannel.NAVIGATION)) return
+        if (!vehicleRouting && channel == AudioChannel.NAVIGATION) return
         active[track] = Entry(channel, attributes)
         if (channel == AudioChannel.MEDIA) mediaAttributes = attributes
         refreshRequest()
     }
 
     @Synchronized fun release(track: AudioTrack) {
+        speechDeadlines.remove(track)
+        refreshSpeechPlayback()
         if (active.remove(track) != null) {
             if (!vehicleRouting && active.isEmpty()) mediaAttributes = null
             refreshRequest()
         }
+    }
+
+    @Synchronized fun setSpeechPlaybackListener(listener: ((Boolean) -> Unit)?) {
+        speechListener = listener
+    }
+
+    @Synchronized fun onSpeechPlayback(track: AudioTrack, bufferedMillis: Long) {
+        if (closed) return
+        speechDeadlines[track] = SystemClock.elapsedRealtime() + bufferedMillis.coerceAtLeast(0L) + 900L
+        refreshSpeechPlayback()
+    }
+
+    @Synchronized fun refreshSpeechPlayback() {
+        if (closed) return
+        val now = SystemClock.elapsedRealtime()
+        speechDeadlines.entries.removeAll { it.value <= now }
+        val playing = speechDeadlines.isNotEmpty()
+        if (playing == speechPlaying) return
+        speechPlaying = playing
+        applyVolumes()
+        runCatching { report("Audio: priority speech playing=$playing") }
+        runCatching { speechListener?.invoke(playing) }
     }
 
     @Synchronized fun onMediaPlaying(playing: Boolean) {
@@ -109,8 +142,10 @@ internal class AudioFocusCoordinator(
     @Synchronized fun captureAllowed(): Boolean = !closed && (!enabled || focusHeld && !externalCall)
 
     private fun addCapture(channel: AudioChannel, usage: Int) {
-        captures[channel] = Entry(channel, active.values.firstOrNull { it.channel == channel }?.attributes
-            ?: AudioAttributes.Builder().setUsage(if (unifiedMediaOutput) AudioAttributes.USAGE_MEDIA else usage)
+        // carlito | Input focus remains a voice request even when its output track uses MEDIA.
+        val playbackAttributes = if (unifiedMediaOutput) null else active.values.firstOrNull { it.channel == channel }?.attributes
+        captures[channel] = Entry(channel, playbackAttributes
+            ?: AudioAttributes.Builder().setUsage(usage)
                 .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build())
     }
 
@@ -144,13 +179,14 @@ internal class AudioFocusCoordinator(
         closed = true
         abandonRequest()
         active.clear(); captures.clear(); mediaAttributes = null
+        speechDeadlines.clear(); speechPlaying = false; speechListener = null
         publishOwnership(false)
     }
 
     private fun abandonRequest() {
         requestGeneration++
         request?.let { current -> runCatching { manager?.let(current::abandon) } }
-        request = null; requestedChannel = null; focusHeld = false; focusVolume = 0f
+        request = null; requestedChannel = null; requestedAttributes = null; focusHeld = false; focusVolume = 0f
     }
 
     private fun refreshRequest() {
@@ -161,13 +197,14 @@ internal class AudioFocusCoordinator(
             refreshStandardRequest()
             return
         }
-        val primary = (active.values + captures.values).filter {
+        val entries = if (unifiedMediaOutput) captures.values + active.values else active.values + captures.values
+        val primary = entries.filter {
             it.channel != AudioChannel.NAVIGATION && (it.channel != AudioChannel.MEDIA || !nativeBluetoothPlaying && !mediaSuppressed && mediaPlaying != false)
         }.maxByOrNull { it.channel.priority() }
             ?: mediaAttributes?.takeIf { !nativeBluetoothPlaying && !mediaSuppressed && mediaPlaying != false }?.let { Entry(AudioChannel.MEDIA, it) }
             ?: active.values.firstOrNull { it.channel == AudioChannel.NAVIGATION }
         if (primary == null) { abandonRequest(); applyVolumes(); return }
-        if (request != null && requestedChannel == primary.channel) { applyVolumes(); return }
+        if (request != null && requestedChannel == primary.channel && requestedAttributes == primary.attributes) { applyVolumes(); return }
         abandonRequest()
         val generation = ++requestGeneration
         val gain = when (primary.channel) {
@@ -180,6 +217,7 @@ internal class AudioFocusCoordinator(
         currentListener = listenerFor(generation)
         request = AudioFocusRequestCompat(gain, primary.attributes, currentListener, Handler(Looper.getMainLooper()))
         requestedChannel = primary.channel
+        requestedAttributes = primary.attributes
         requestCurrentFocus()
     }
 
@@ -196,9 +234,10 @@ internal class AudioFocusCoordinator(
     private fun applyVolumes() {
         if (!vehicleRouting) {
             active.forEach { (track, entry) ->
-                if (entry.channel == AudioChannel.MEDIA && entry.appliedVolume != focusVolume) {
-                    val applied = runCatching { track.setStereoVolume(focusVolume, focusVolume) == AudioTrack.SUCCESS }.getOrDefault(false)
-                    if (applied) entry.appliedVolume = focusVolume
+                val volume = if (speechPlaying && entry.music) 0f else if (enabled && manager != null && entry.music) focusVolume else 1f
+                if (entry.appliedVolume != volume) {
+                    val applied = runCatching { track.setStereoVolume(volume, volume) == AudioTrack.SUCCESS }.getOrDefault(false)
+                    if (applied) entry.appliedVolume = volume
                 }
             }
             return
@@ -206,12 +245,12 @@ internal class AudioFocusCoordinator(
         val navigation = active.values.any { it.channel == AudioChannel.NAVIGATION }
         active.forEach { (track, entry) ->
             if (!enabled || manager == null) {
-                runCatching { track.setVolume(if (nativeBluetoothPlaying && entry.channel == AudioChannel.MEDIA) 0f else 1f) }
+                runCatching { track.setVolume(if (entry.music && (nativeBluetoothPlaying || speechPlaying)) 0f else 1f) }
                 return@forEach
             }
             val local = when {
                 externalCall -> 0f
-                entry.channel == AudioChannel.MEDIA && (nativeBluetoothPlaying || mediaSuppressed || mediaPlaying == false) -> 0f
+                entry.music && (speechPlaying || nativeBluetoothPlaying || mediaSuppressed || mediaPlaying == false) -> 0f
                 requestedChannel in setOf(AudioChannel.PHONE, AudioChannel.ASSISTANT, AudioChannel.RINGTONE) && entry.channel != requestedChannel -> 0f
                 entry.channel == AudioChannel.MEDIA && navigation -> DUCKED_VOLUME
                 else -> 1f

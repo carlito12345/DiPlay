@@ -34,6 +34,13 @@ object CarHotspotTethering {
         timeoutMillis: Long = WirelessStartupPolicy.HOTSPOT_READY_MILLIS,
         log: (String) -> Unit,
     ): Result {
+        // carlito | A separately managed factory AP must not be replaced by Android tethering
+        // or an ADB fallback. The existing manual manager reads its state and verifies its route.
+        if (EcarxHotspotReader.available(context) && CarHotspotStatus.androidEnabled(context) != true) {
+            return (if (isCancelled()) Result.CANCELLED else Result.UNSUPPORTED).also {
+                log("car hotspot auto-enable: factory AP remains owned by the car settings")
+            }
+        }
         val deadline = System.nanoTime() + timeoutMillis * 1_000_000L
         val observedAdbState = AtomicReference<Boolean?>()
         val startReflection: (ResultReceiver) -> Unit = { receiver ->

@@ -19,9 +19,12 @@ internal class ManualHotspotInterfaces(
 ) : Closeable {
     private val connectivity = context.getSystemService(ConnectivityManager::class.java)
     private val publicTethering = if (Build.VERSION.SDK_INT >= 36) PublicTethering(context) else null
+    // carlito | One reader belongs to this manager; closing it never changes the factory AP.
+    private val vendor = EcarxHotspotReader(context, onDiagnostic)
     private var lastLegacyDiagnostic: String? = null
 
     fun sample(): HotspotNetworkSnapshot {
+        val vendorState = vendor.snapshot()
         val ap = publicTethering?.interfaces ?: legacyApInterfaces()
         val before = runCatching { connectivity?.activeNetwork }
         val upstreams = runCatching {
@@ -49,9 +52,13 @@ internal class ManualHotspotInterfaces(
         return HotspotNetworkSnapshot(
             interfaces, ap, upstreams, defaultName,
             consistent = before.isSuccess && after.isSuccess && before.getOrNull() == after.getOrNull(),
-            apEnabled = CarHotspotStatus.isEnabled(context),
+            // carlito | Only a verified factory route may override Android AP off.
+            apEnabled = CarHotspotStatus.androidEnabled(context),
+            vendorHostAddresses = vendorState.routedHosts,
         )
     }
+
+    fun vendorDiagnosticSnapshot(): String = vendor.diagnosticSnapshot()
 
     // 旧平台只使用允许读取的结果；接口归属读不到时保持 unknown，不放宽普通网卡资格。
     @SuppressLint("PrivateApi")
@@ -73,7 +80,10 @@ internal class ManualHotspotInterfaces(
         ap
     }.getOrNull()
 
-    override fun close() { publicTethering?.close() }
+    override fun close() {
+        publicTethering?.close()
+        vendor.close()
+    }
 
     @RequiresApi(36)
     private class PublicTethering(context: Context) : Closeable {

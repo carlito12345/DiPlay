@@ -16,6 +16,7 @@ import java.io.Closeable
 import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.InetAddress
+import java.net.Inet6Address
 import java.net.InetSocketAddress
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -124,7 +125,9 @@ internal class MicrophoneUplink(
         val nextSocket = try {
             DatagramSocket(null).apply {
                 reuseAddress = true
-                bind(InetSocketAddress(InetAddress.getByName("::"), 0))
+                // carlito | Match the negotiated peer: IPv4 capture must not require an IPv6 socket.
+                val wildcard = if (config.host is Inet6Address) "::" else "0.0.0.0"
+                bind(InetSocketAddress(InetAddress.getByName(wildcard), 0))
             }
         } catch (error: Exception) {
             Log.e(TAG, "microphone socket creation failed", error)

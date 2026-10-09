@@ -21,6 +21,14 @@ object CarHotspotStatus {
      * while tethering is off.
      */
     fun isEnabled(context: Context): Boolean? {
+        // carlito | Android SoftAP cannot disprove the separate factory AP. Its presence alone
+        // does not prove readiness: ManualHotspotInterfaces still requires an actual client route.
+        return androidEnabled(context).takeUnless {
+            it == false && EcarxHotspotReader.available(context)
+        }
+    }
+
+    internal fun androidEnabled(context: Context): Boolean? {
         val app = context.applicationContext
         val wifi = app.getSystemService(WifiManager::class.java)
         return read(

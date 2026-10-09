@@ -36,7 +36,6 @@ android {
 dependencies {
     implementation libs.androidx.app
     implementation libs.bouncycastle
-    implementation libs.concentus
     implementation libs.jmdns
     testImplementation libs.junit
     testImplementation 'org.robolectric:robolectric:4.17'

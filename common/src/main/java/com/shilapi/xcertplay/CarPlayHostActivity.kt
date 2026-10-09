@@ -474,6 +474,9 @@ class CarPlayHostActivity : ComponentActivity() {
     private var reconnectScheduled = false
     private var requestedSmallWindowForStream: Boolean? = null
     @Volatile private var adbNaviMode: com.shilapi.xcertplay.hud.BydClusterNaviMode? = null
+    // carlito | One cancellable retry per Activity; stale callbacks must not own a new attempt.
+    private var reconnectTask: Runnable? = null
+    private var reconnectRecoverableBySession = false
     private var sessionLog: SessionLogFile? = null
     private var gestureFingerCount = 3
     // carlito | The navigation gesture may have a different count from the settings gesture.
@@ -1536,6 +1539,9 @@ class CarPlayHostActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
+        // carlito | A background session deliberately retains its owner after the view is gone.
+        // Preserve that owner's recovery; shutdown and ownership transfer cancel obsolete work.
+        if (!CarPlayBackgroundSession.isOwner(this) || shuttingDown.get()) cancelReconnect()
         resetSidePanel()
         releaseSidePanelEffects()
         hostAppearanceResumed = false
@@ -4711,6 +4717,9 @@ class CarPlayHostActivity : ComponentActivity() {
                     }
                     activeAirPlaySession = session
                     CarPlayBackgroundSession.active = true
+                    // carlito | RECORD can recover an ended AirPlay session, but it cannot
+                    // restart a failed iAP2 control loop. Preserve mandatory transport recovery.
+                    if (reconnectRecoverableBySession) cancelReconnect()
                     reconnectAttempts = 0
                     logThemeState(ThemeModeDiagnostics.Source.SESSION_ACTIVE, resources.configuration)
                     syncAirPlayDarkMode(ThemeModeDiagnostics.Source.SESSION_ACTIVE)
@@ -4759,7 +4768,7 @@ class CarPlayHostActivity : ComponentActivity() {
                     ClusterActivityOutput.setStreamActive(false)
                     setConnectionStage(getString(R.string.carplay_session_ended_reconnecting))
                     appendLog("AirPlay session ended; reconnecting from scratch")
-                    reconnectAfterLoss("AirPlay session ended")
+                    reconnectAfterLoss("AirPlay session ended", recoverableBySession = true)
                 }
             }
 
@@ -4910,6 +4919,7 @@ class CarPlayHostActivity : ComponentActivity() {
     private fun startCarPlay(size: DisplaySize) {
         if (CarPlayBackgroundSession.hasSession() && !CarPlayBackgroundSession.isOwner(this)) return
         if (shuttingDown.get() || menuOpen || handshakeResetInProgress || controller != null) return
+        cancelReconnect()
         val controllerGeneration = restartGeneration
         val config = createRuntimeConfig()
         val effectiveSize = if (isMultiWindowActive() && !AirPlayPersistence.loadAdaptPipResolution(this) &&
@@ -4997,6 +5007,7 @@ class CarPlayHostActivity : ComponentActivity() {
             manageAudioFocus = !com.shilapi.xcertplay.vehicle.VehicleAudioOutputMode.bluetooth(this) &&
                 geelyFactory == null && !AirPlayPersistence.loadAudioFocusEnabled(this),
             onMediaPlaying = renderer::onMediaPlaying)
+        renderer.setSpeechPlaybackListener { active -> CarPlayMediaKeys.onSpeechPlayback(next, active) }
         if (airPlayConfig.videoInCar) CarPlayVideo.attach(this, next)
         val display = CarPlaySessionDisplay(
             airPlayConfig.main.widthPixels, airPlayConfig.main.heightPixels,
@@ -5314,11 +5325,19 @@ class CarPlayHostActivity : ComponentActivity() {
         startCarPlay(size)
     }
 
-    private fun reconnectAfterLoss(reason: String, startupFailure: WirelessStartupFailure? = null) {
+    private fun reconnectAfterLoss(
+        reason: String,
+        startupFailure: WirelessStartupFailure? = null,
+        recoverableBySession: Boolean = false,
+    ) {
         if (!CarPlayBackgroundSession.isOwner(this)) return
         if (menuOpen) recoveryPendingAfterMenu = true
         if (shuttingDown.get() || menuOpen || handshakeResetInProgress || startupRetryStopped) return
-        if (reconnectScheduled) return
+        if (reconnectScheduled) {
+            // carlito | A later control fault upgrades an existing optional recovery to mandatory.
+            reconnectRecoverableBySession = reconnectRecoverableBySession && recoverableBySession
+            return
+        }
         val startupDelay = if (startupFailure != null && startupFailure != WirelessStartupFailure.HOTSPOT_CONFIGURATION)
             startupRetryBudget.nextDelayMillis() else null
         if (startupFailure != null && startupDelay == null) {
@@ -5330,6 +5349,7 @@ class CarPlayHostActivity : ComponentActivity() {
             return
         }
         reconnectScheduled = true
+        reconnectRecoverableBySession = recoverableBySession
         val generation = restartGeneration
         val delayMillis = if (startupDelay != null) {
             startupDelay
@@ -5340,22 +5360,35 @@ class CarPlayHostActivity : ComponentActivity() {
         }
         reconnectAttempts += 1
         appendLog("$reason; retrying in ${delayMillis}ms generation=$generation startupFailure=$startupFailure startupRetries=${startupRetryBudget.retries}")
-        mainHandler.postDelayed(
-            {
-                reconnectScheduled = false
+        // carlito | A pending failure may recover before this delay expires. Cancel on success,
+        // and check both callback ownership and generation before rebuilding any resources.
+        val task = object : Runnable {
+            override fun run() {
+                if (reconnectTask !== this) return
+                cancelReconnect()
                 if (menuOpen && generation == restartGeneration) recoveryPendingAfterMenu = true
                 if (
                     shuttingDown.get() ||
                     menuOpen ||
                     handshakeResetInProgress || startupRetryStopped ||
-                    generation != restartGeneration
+                    generation != restartGeneration ||
+                    !CarPlayBackgroundSession.isOwner(this@CarPlayHostActivity)
                 ) {
-                    return@postDelayed
+                    return
                 }
                 restartCarPlay("Reconnecting after $reason")
-            },
-            delayMillis,
-        )
+            }
+        }
+        reconnectTask = task
+        if (!mainHandler.postDelayed(task, delayMillis)) cancelReconnect()
+    }
+
+    // carlito | Removing the actual callback releases its captured Activity and failure reason.
+    private fun cancelReconnect() {
+        reconnectTask?.let(mainHandler::removeCallbacks)
+        reconnectTask = null
+        reconnectScheduled = false
+        reconnectRecoverableBySession = false
     }
 
     /** Full-stack fallback when an AirPlay-only reconnect is unavailable. */
@@ -5363,6 +5396,7 @@ class CarPlayHostActivity : ComponentActivity() {
         if (!CarPlayBackgroundSession.isOwner(this)) return
         if (shuttingDown.get() || menuOpen || handshakeResetInProgress) return
         val size = activeDisplaySize ?: return
+        cancelReconnect()
         startupRetryBudget.disconnected()
         startupRetryButton?.visibility = View.GONE
         appendLog(reason)
@@ -5558,6 +5592,7 @@ class CarPlayHostActivity : ComponentActivity() {
 
     private fun shutdown(terminateProcess: Boolean, reason: String, completion: () -> Unit = {}) {
         if (!shuttingDown.compareAndSet(false, true)) { completion(); return }
+        cancelReconnect()
         resetSidePanel()
         releaseSidePanelEffects()
         startupRetryBudget.disconnected()
