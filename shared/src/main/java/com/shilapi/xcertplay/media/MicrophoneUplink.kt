@@ -165,7 +165,8 @@ internal class MicrophoneUplink(
         return try {
             if (config.audioType == "telephony") {
                 echoCanceller = createEchoCanceller()
-                effects = voiceEffects(candidate.audioSessionId)
+                // carlito | Cabin capture keeps the upstream MIC path without communication effects.
+                if (!speakerphoneCall) effects = voiceEffects(candidate.audioSessionId)
                 if (echoReference != null) {
                     Log.i(TAG, "microphone echo canceller enabled=${echoCanceller != null} tail=${ECHO_TAIL_MILLIS}ms")
                 }

@@ -472,10 +472,14 @@ class AndroidMediaSink(
         if (!vehicleAudioRouting) {
             // Keep the upstream capture lifecycle for the ordinary Android route.
             try {
-                if (config.audioType == TELEPHONY_AUDIO_TYPE) enterCommunicationMode(id)
+                // carlito | Preserve upstream cabin capture while DiPlay has suspended the car radio.
+                val speakerphoneCall = config.audioType == TELEPHONY_AUDIO_TYPE &&
+                    appContext != null && BydBluetoothSuspend.isSuspendedByUs(appContext)
+                if (config.audioType == TELEPHONY_AUDIO_TYPE && !speakerphoneCall) enterCommunicationMode(id)
                 val active = microphoneUplinks.computeIfAbsent(id) {
                     val pending = PendingMicrophone(config)
                     ActiveMicrophone(pending, MicrophoneUplink(config, onAudioDiagnostic,
+                        speakerphoneCall = speakerphoneCall,
                         echoReference = if (config.audioType == TELEPHONY_AUDIO_TYPE) callEchoReferences[id] else null,
                         counters = pending.counters))
                 }
