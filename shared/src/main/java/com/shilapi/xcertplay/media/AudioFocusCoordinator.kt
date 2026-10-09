@@ -86,7 +86,7 @@ internal class AudioFocusCoordinator(
         if (closed) return
         if (!vehicleRouting && channel == AudioChannel.NAVIGATION) return
         active[track] = Entry(channel, attributes)
-        if (channel == AudioChannel.MEDIA) mediaAttributes = attributes
+        if (active.getValue(track).music) mediaAttributes = attributes
         refreshRequest()
     }
 
@@ -199,8 +199,8 @@ internal class AudioFocusCoordinator(
         }
         val entries = if (unifiedMediaOutput) captures.values + active.values else active.values + captures.values
         val primary = entries.filter {
-            it.channel != AudioChannel.NAVIGATION && (it.channel != AudioChannel.MEDIA || !nativeBluetoothPlaying && !mediaSuppressed && mediaPlaying != false)
-        }.maxByOrNull { it.channel.priority() }
+            it.channel != AudioChannel.NAVIGATION && (!it.music || !nativeBluetoothPlaying && !mediaSuppressed && mediaPlaying != false)
+        }.maxByOrNull { it.channel.priority() * 2 + if (it.channel == AudioChannel.MEDIA && !it.music) 1 else 0 }
             ?: mediaAttributes?.takeIf { !nativeBluetoothPlaying && !mediaSuppressed && mediaPlaying != false }?.let { Entry(AudioChannel.MEDIA, it) }
             ?: active.values.firstOrNull { it.channel == AudioChannel.NAVIGATION }
         if (primary == null) { abandonRequest(); applyVolumes(); return }
@@ -208,7 +208,7 @@ internal class AudioFocusCoordinator(
         abandonRequest()
         val generation = ++requestGeneration
         val gain = when (primary.channel) {
-            AudioChannel.MEDIA -> AudioManager.AUDIOFOCUS_GAIN
+            AudioChannel.MEDIA -> if (primary.music) AudioManager.AUDIOFOCUS_GAIN else AudioManager.AUDIOFOCUS_GAIN_TRANSIENT
             AudioChannel.PHONE, AudioChannel.RINGTONE -> AudioManager.AUDIOFOCUS_GAIN_TRANSIENT
             AudioChannel.ASSISTANT -> AudioManager.AUDIOFOCUS_GAIN_TRANSIENT
             AudioChannel.NAVIGATION -> if (factoryRouting) AudioManager.AUDIOFOCUS_GAIN_TRANSIENT
@@ -252,7 +252,7 @@ internal class AudioFocusCoordinator(
                 externalCall -> 0f
                 entry.music && (speechPlaying || nativeBluetoothPlaying || mediaSuppressed || mediaPlaying == false) -> 0f
                 requestedChannel in setOf(AudioChannel.PHONE, AudioChannel.ASSISTANT, AudioChannel.RINGTONE) && entry.channel != requestedChannel -> 0f
-                entry.channel == AudioChannel.MEDIA && navigation -> DUCKED_VOLUME
+                entry.music && navigation -> DUCKED_VOLUME
                 else -> 1f
             }
             runCatching { track.setVolume(focusVolume * local) }
